@@ -1,9 +1,62 @@
 import { useEffect, useState } from 'react'
 import { adminApi } from '../../api/adminApi'
 
+// Extrae el GUID de un elemento de catálogo independientemente del nombre exacto del campo
+const getGuid = (item) =>
+  item.des_guid ?? item.cat_guid ?? item.id_guid ?? item.inc_guid ?? item.guid ?? null
+
+const getNombre = (item) =>
+  item.des_nombre ?? item.nombre ?? item.descripcion ?? item.name ?? ''
+
+// Alterna un guid en un array (agrega si no está, quita si está)
+const toggleGuid = (array, guid) =>
+  array.includes(guid) ? array.filter((g) => g !== guid) : [...array, guid]
+
+// ──────────────────────────────────────────────
+// Sección de checkboxes reutilizable
+// ──────────────────────────────────────────────
+function GrupoCheckboxes({ titulo, items, seleccionados, onChange }) {
+  if (!items.length) return null
+  return (
+    <div className="checkbox-group" style={{ gridColumn: '1 / -1' }}>
+      <p style={{ margin: '0 0 0.4rem', fontWeight: 600 }}>{titulo}</p>
+      <div className="checkbox-grid">
+        {items.map((item) => {
+          const guid = getGuid(item)
+          const nombre = getNombre(item)
+          return (
+            <label key={guid} className="checkbox-item">
+              <input
+                type="checkbox"
+                checked={seleccionados.includes(guid)}
+                onChange={() => onChange(toggleGuid(seleccionados, guid))}
+              />
+              {nombre}
+            </label>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ──────────────────────────────────────────────
+// Formulario principal
+// ──────────────────────────────────────────────
 function FormularioAtraccion({ inicial, onGuardar, onCancelar }) {
+  // ── estado de catálogos ──
+  const [catalogos, setCatalogos] = useState({
+    destinos: [],
+    categorias: [],
+    idiomas: [],
+    incluye: [],
+  })
+  const [cargandoCatalogos, setCargandoCatalogos] = useState(true)
+  const [errorCatalogos, setErrorCatalogos] = useState('')
+
+  // ── estado del formulario ──
   const [form, setForm] = useState({
-    destinoNombre: '',
+    desGuid: '',
     nombre: '',
     descripcion: '',
     direccion: '',
@@ -14,76 +67,69 @@ function FormularioAtraccion({ inicial, onGuardar, onCancelar }) {
     incluyeTransporte: false,
     categoriaGuids: [],
     idiomaGuids: [],
-    imagenGuids: [],
     incluyeGuids: [],
     imagenUrlReferencia: '',
   })
-  const [destinos, setDestinos] = useState([])
 
-  useEffect(() => {
-    adminApi.listDestinos().then(setDestinos).catch(() => setDestinos([]))
-  }, [])
+  const set = (campo) => (e) => setForm((p) => ({ ...p, [campo]: e.target.value }))
+  const setCheck = (campo) => (e) => setForm((p) => ({ ...p, [campo]: e.target.checked }))
 
-  useEffect(() => {
-    if (!form.destinoNombre.trim()) return
-    const timeoutId = setTimeout(() => {
-      adminApi.listDestinos().then(setDestinos).catch(() => {})
-    }, 300)
-    return () => clearTimeout(timeoutId)
-  }, [form.destinoNombre])
-
-  useEffect(() => {
-    if (inicial) {
-      setForm({
-        destinoNombre: inicial.ciudad || '',
-        nombre: inicial.nombre || '',
-        descripcion: inicial.descripcion || '',
-        direccion: inicial.direccion || '',
-        duracionMinutos: inicial.duracionMinutos || '',
-        puntoEncuentro: inicial.puntoEncuentro || '',
-        precioReferencia: inicial.precioReferencia || '',
-        incluyeAcompaniante: Boolean(inicial.incluyeAcompaniante),
-        incluyeTransporte: Boolean(inicial.incluyeTransporte),
-        categoriaGuids: inicial.categoriaGuids || [],
-        idiomaGuids: inicial.idiomaGuids || [],
-        imagenGuids: inicial.imagenGuids || [],
-        incluyeGuids: inicial.incluyeGuids || [],
-        imagenUrlReferencia: inicial.imagenUrlReferencia || '',
+  // ── carga de catálogos en paralelo ──
+  const cargarCatalogos = () => {
+    setCargandoCatalogos(true)
+    setErrorCatalogos('')
+    Promise.all([
+      adminApi.listDestinos(),
+      adminApi.listarCategorias(),
+      adminApi.listarIdiomas(),
+      adminApi.listarIncluye(),
+    ])
+      .then(([destinos, categorias, idiomas, incluye]) => {
+        setCatalogos({ destinos, categorias, idiomas, incluye })
       })
-    }
-  }, [inicial])
-
-  const resolverDestinoGuid = async (destinoNombre) => {
-    const nombreNormalizado = destinoNombre.trim().toLowerCase()
-    let lista = destinos
-    if (!lista.length) {
-      lista = await adminApi.listDestinos()
-      setDestinos(lista)
-    }
-    const existente = lista.find((item) => item.nombre?.trim().toLowerCase() === nombreNormalizado)
-    if (existente) {
-      return existente.guid || existente.desGuid
-    }
-
-    const creado = await adminApi.createDestino({
-      nombre: destinoNombre.trim(),
-      pais: 'Ecuador',
-    })
-    const guidCreado = creado?.data?.guid || creado?.data?.desGuid || creado?.guid || creado?.desGuid
-    if (guidCreado) {
-      const nuevaLista = [...lista, { guid: guidCreado, nombre: destinoNombre.trim() }]
-      setDestinos(nuevaLista)
-      return guidCreado
-    }
-    throw new Error('No se pudo resolver el destino')
+      .catch((err) => {
+        setErrorCatalogos(
+          err?.response?.data?.message || 'No se pudieron cargar los catálogos. Reintenta.',
+        )
+      })
+      .finally(() => setCargandoCatalogos(false))
   }
 
+  useEffect(() => {
+    cargarCatalogos()
+  }, [])
+
+  // ── pre-llenado en modo edición ──
+  useEffect(() => {
+    if (!inicial) return
+    setForm({
+      desGuid: inicial.des_guid ?? inicial.desGuid ?? '',
+      nombre: inicial.nombre ?? '',
+      descripcion: inicial.descripcion ?? '',
+      direccion: inicial.direccion ?? '',
+      duracionMinutos: inicial.duracion_minutos ?? inicial.duracionMinutos ?? '',
+      puntoEncuentro: inicial.punto_encuentro ?? inicial.puntoEncuentro ?? '',
+      precioReferencia: inicial.precio_referencia ?? inicial.precioReferencia ?? '',
+      incluyeAcompaniante: Boolean(
+        inicial.incluye_acompaniante ?? inicial.incluyeAcompaniante,
+      ),
+      incluyeTransporte: Boolean(
+        inicial.incluye_transporte ?? inicial.incluyeTransporte,
+      ),
+      categoriaGuids: inicial.categoria_guids ?? inicial.categoriaGuids ?? [],
+      idiomaGuids: inicial.idioma_guids ?? inicial.idiomaGuids ?? [],
+      incluyeGuids: inicial.incluye_guids ?? inicial.incluyeGuids ?? [],
+      imagenUrlReferencia: inicial.imagen_url ?? inicial.imagenUrlReferencia ?? '',
+    })
+  }, [inicial])
+
+  // ── submit ──
   const submit = async (event) => {
     event.preventDefault()
-    const desGuid = await resolverDestinoGuid(form.destinoNombre)
+    if (!form.desGuid) return
 
     const payload = {
-      desGuid,
+      desGuid: form.desGuid,
       nombre: form.nombre,
       descripcion: form.descripcion || null,
       direccion: form.direccion || null,
@@ -92,86 +138,190 @@ function FormularioAtraccion({ inicial, onGuardar, onCancelar }) {
       precioReferencia: form.precioReferencia ? Number(form.precioReferencia) : null,
       incluyeAcompaniante: Boolean(form.incluyeAcompaniante),
       incluyeTransporte: Boolean(form.incluyeTransporte),
-      categoriaGuids: form.categoriaGuids || [],
-      idiomaGuids: form.idiomaGuids || [],
-      imagenGuids: form.imagenGuids || [],
-      incluyeGuids: form.incluyeGuids || [],
-      // URL de imagen como referencia textual; el backend la procesa si soporta el campo
-      imagenUrl: form.imagenUrlReferencia.trim() || undefined,
+      categoriaGuids: form.categoriaGuids,
+      idiomaGuids: form.idiomaGuids,
+      imagenGuids: [],
+      incluyeGuids: form.incluyeGuids,
+      imagenUrlReferencia: form.imagenUrlReferencia.trim() || undefined,
     }
+
     await onGuardar(payload)
+  }
+
+  // ── estados de carga y error ──
+  if (cargandoCatalogos) {
+    return (
+      <p style={{ padding: '1rem', color: '#9ddcff' }}>Cargando catálogos...</p>
+    )
+  }
+
+  if (errorCatalogos) {
+    return (
+      <div style={{ padding: '1rem' }}>
+        <p style={{ color: '#ffc8c8' }}>{errorCatalogos}</p>
+        <button className="btn btn-outline" type="button" onClick={cargarCatalogos}>
+          Reintentar
+        </button>
+        <button
+          className="btn btn-outline"
+          type="button"
+          onClick={onCancelar}
+          style={{ marginLeft: '0.5rem' }}
+        >
+          Cancelar
+        </button>
+      </div>
+    )
   }
 
   return (
     <form className="admin-form two-columns" onSubmit={submit}>
-      <input
-        placeholder="Destino (ciudad)"
-        value={form.destinoNombre}
-        onChange={(e) => setForm((p) => ({ ...p, destinoNombre: e.target.value }))}
-        required
-      />
-      <input
-        placeholder="Nombre"
-        value={form.nombre}
-        onChange={(e) => setForm((p) => ({ ...p, nombre: e.target.value }))}
-        required
-      />
-      <textarea
-        placeholder="Descripcion"
-        value={form.descripcion}
-        onChange={(e) => setForm((p) => ({ ...p, descripcion: e.target.value }))}
-      />
-      <input
-        placeholder="Direccion"
-        value={form.direccion}
-        onChange={(e) => setForm((p) => ({ ...p, direccion: e.target.value }))}
-      />
-      <input
-        placeholder="Duracion en minutos"
-        type="number"
-        min="0"
-        value={form.duracionMinutos}
-        onChange={(e) => setForm((p) => ({ ...p, duracionMinutos: e.target.value }))}
-      />
-      <input
-        placeholder="Punto de encuentro"
-        value={form.puntoEncuentro}
-        onChange={(e) => setForm((p) => ({ ...p, puntoEncuentro: e.target.value }))}
-      />
-      <input
-        placeholder="Precio de referencia"
-        type="number"
-        min="0"
-        step="0.01"
-        value={form.precioReferencia}
-        onChange={(e) => setForm((p) => ({ ...p, precioReferencia: e.target.value }))}
-      />
-      <label className="inline-form">
+
+      {/* ── Destino ── */}
+      <label>
+        Destino
+        <select
+          value={form.desGuid}
+          onChange={set('desGuid')}
+          required
+        >
+          <option value="">Selecciona un destino</option>
+          {catalogos.destinos.map((d) => {
+            const guid = getGuid(d)
+            return (
+              <option key={guid} value={guid}>
+                {getNombre(d)}
+              </option>
+            )
+          })}
+        </select>
+      </label>
+
+      {/* ── Nombre ── */}
+      <label>
+        Nombre
+        <input
+          type="text"
+          value={form.nombre}
+          onChange={set('nombre')}
+          placeholder="Nombre de la atracción"
+          required
+        />
+      </label>
+
+      {/* ── Descripción ── */}
+      <label style={{ gridColumn: '1 / -1' }}>
+        Descripción
+        <textarea
+          value={form.descripcion}
+          onChange={set('descripcion')}
+          placeholder="Descripción de la atracción"
+        />
+      </label>
+
+      {/* ── Dirección ── */}
+      <label>
+        Dirección
+        <input
+          type="text"
+          value={form.direccion}
+          onChange={set('direccion')}
+          placeholder="Dirección"
+        />
+      </label>
+
+      {/* ── Duración ── */}
+      <label>
+        Duración (minutos)
+        <input
+          type="number"
+          min="1"
+          value={form.duracionMinutos}
+          onChange={set('duracionMinutos')}
+          placeholder="ej. 120"
+        />
+      </label>
+
+      {/* ── Punto de encuentro ── */}
+      <label>
+        Punto de encuentro
+        <input
+          type="text"
+          value={form.puntoEncuentro}
+          onChange={set('puntoEncuentro')}
+          placeholder="Punto de encuentro"
+        />
+      </label>
+
+      {/* ── Precio de referencia ── */}
+      <label>
+        Precio de referencia ($)
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          value={form.precioReferencia}
+          onChange={set('precioReferencia')}
+          placeholder="0.00"
+        />
+      </label>
+
+      {/* ── Checkboxes simples ── */}
+      <label className="checkbox-item">
         <input
           type="checkbox"
           checked={form.incluyeAcompaniante}
-          onChange={(e) =>
-            setForm((p) => ({ ...p, incluyeAcompaniante: e.target.checked }))
-          }
+          onChange={setCheck('incluyeAcompaniante')}
         />
-        Incluye acompaniante
+        Incluye acompañante
       </label>
-      <label className="inline-form">
+
+      <label className="checkbox-item">
         <input
           type="checkbox"
           checked={form.incluyeTransporte}
-          onChange={(e) =>
-            setForm((p) => ({ ...p, incluyeTransporte: e.target.checked }))
-          }
+          onChange={setCheck('incluyeTransporte')}
         />
         Incluye transporte
       </label>
-      <input
-        placeholder="URL de imagen (https://...)"
-        value={form.imagenUrlReferencia}
-        onChange={(e) => setForm((p) => ({ ...p, imagenUrlReferencia: e.target.value }))}
+
+      {/* ── URL imagen de referencia ── */}
+      <label style={{ gridColumn: '1 / -1' }}>
+        URL de imagen principal (referencia)
+        <input
+          type="text"
+          value={form.imagenUrlReferencia}
+          onChange={set('imagenUrlReferencia')}
+          placeholder="https://..."
+        />
+      </label>
+
+      {/* ── Categorías ── */}
+      <GrupoCheckboxes
+        titulo="Categorías"
+        items={catalogos.categorias}
+        seleccionados={form.categoriaGuids}
+        onChange={(guids) => setForm((p) => ({ ...p, categoriaGuids: guids }))}
       />
-      <div className="inline-form">
+
+      {/* ── Idiomas ── */}
+      <GrupoCheckboxes
+        titulo="Idiomas"
+        items={catalogos.idiomas}
+        seleccionados={form.idiomaGuids}
+        onChange={(guids) => setForm((p) => ({ ...p, idiomaGuids: guids }))}
+      />
+
+      {/* ── Incluye / Actividades ── */}
+      <GrupoCheckboxes
+        titulo="Incluye"
+        items={catalogos.incluye}
+        seleccionados={form.incluyeGuids}
+        onChange={(guids) => setForm((p) => ({ ...p, incluyeGuids: guids }))}
+      />
+
+      {/* ── Acciones ── */}
+      <div className="inline-form" style={{ gridColumn: '1 / -1' }}>
         <button className="btn" type="submit">
           Guardar
         </button>

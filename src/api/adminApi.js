@@ -37,6 +37,20 @@ export const adminApi = {
     return response.data
   },
 
+  // ─── Catálogos auxiliares ──────────────────────────────────────────────────
+  listarCategorias: async () => {
+    const response = await apiClient.get('/admin/categorias')
+    return response.data?.data || []
+  },
+  listarIdiomas: async () => {
+    const response = await apiClient.get('/admin/idiomas')
+    return response.data?.data || []
+  },
+  listarIncluye: async () => {
+    const response = await apiClient.get('/admin/incluye')
+    return response.data?.data || []
+  },
+
   // ─── Tickets ──────────────────────────────────────────────────────────────
   // No existe GET /admin/tickets en el backend; la lista se obtiene
   // desde el detalle de cada atracción (GET /admin/atracciones/{guid})

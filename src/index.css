@@ -461,6 +461,25 @@ select {
   width: 100%;
 }
 
+/* ── Checkboxes de catálogo ── */
+.checkbox-group {
+  margin-top: 0.25rem;
+}
+
+.checkbox-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
 /* ── Misc ── */
 .text-muted {
   color: #9ddcff;

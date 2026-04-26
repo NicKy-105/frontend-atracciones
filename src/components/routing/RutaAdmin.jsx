@@ -3,7 +3,7 @@ import { useAuthContext } from '../../context/AuthContext'
 
 function RutaAdmin({ children }) {
   const { estaAutenticado, usuario } = useAuthContext()
-  const esAdministrador = usuario?.roles?.includes('ADMINISTRADOR')
+  const esAdministrador = usuario?.roles?.includes('ADMIN')
 
   if (!estaAutenticado || !esAdministrador) {
     return <Navigate to="/" replace />

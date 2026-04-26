@@ -1,48 +1,81 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
-function FormularioHorario({ inicial, onGuardar, onCancelar }) {
+function FormularioHorario({ onGuardar, onCancelar }) {
   const [form, setForm] = useState({
     tck_guid: '',
-    fecha_hora: '',
-    cupos: '',
+    fecha: '',
+    hora_inicio: '',
+    hora_fin: '',
+    cupos_disponibles: '',
   })
 
-  useEffect(() => {
-    if (inicial) {
-      setForm({
-        tck_guid: inicial.tck_guid || '',
-        fecha_hora: inicial.fecha_hora || '',
-        cupos: inicial.cupos || '',
-      })
-    }
-  }, [inicial])
+  const set = (campo) => (e) =>
+    setForm((prev) => ({ ...prev, [campo]: e.target.value }))
 
   const submit = async (event) => {
     event.preventDefault()
-    await onGuardar({ ...form, cupos: Number(form.cupos) })
+    const payload = {
+      tck_guid: form.tck_guid,
+      fecha: form.fecha,
+      hora_inicio: form.hora_inicio,
+      cupos_disponibles: Number(form.cupos_disponibles),
+    }
+    if (form.hora_fin) payload.hora_fin = form.hora_fin
+    await onGuardar(payload)
   }
 
   return (
     <form className="admin-form" onSubmit={submit}>
-      <input
-        placeholder="tck_guid"
-        value={form.tck_guid}
-        onChange={(e) => setForm((p) => ({ ...p, tck_guid: e.target.value }))}
-        required
-      />
-      <input
-        placeholder="fecha_hora"
-        value={form.fecha_hora}
-        onChange={(e) => setForm((p) => ({ ...p, fecha_hora: e.target.value }))}
-        required
-      />
-      <input
-        placeholder="cupos"
-        type="number"
-        min="0"
-        value={form.cupos}
-        onChange={(e) => setForm((p) => ({ ...p, cupos: e.target.value }))}
-      />
+      <label>
+        GUID del ticket (tck_guid)
+        <input
+          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+          value={form.tck_guid}
+          onChange={set('tck_guid')}
+          required
+        />
+      </label>
+
+      <label>
+        Fecha (YYYY-MM-DD)
+        <input
+          type="date"
+          value={form.fecha}
+          onChange={set('fecha')}
+          required
+        />
+      </label>
+
+      <label>
+        Hora de inicio (HH:mm)
+        <input
+          type="time"
+          value={form.hora_inicio}
+          onChange={set('hora_inicio')}
+          required
+        />
+      </label>
+
+      <label>
+        Hora de fin (opcional)
+        <input
+          type="time"
+          value={form.hora_fin}
+          onChange={set('hora_fin')}
+        />
+      </label>
+
+      <label>
+        Cupos disponibles
+        <input
+          type="number"
+          min="1"
+          value={form.cupos_disponibles}
+          onChange={set('cupos_disponibles')}
+          required
+        />
+      </label>
+
       <div className="inline-form">
         <button className="btn" type="submit">
           Guardar

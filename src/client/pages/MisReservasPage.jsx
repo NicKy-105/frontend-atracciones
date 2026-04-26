@@ -60,12 +60,16 @@ function MisReservasPage() {
           </thead>
           <tbody>
             {reservas.map((reserva) => (
-              <tr key={reserva.guid || reserva.codigo}>
-                <td>{reserva.codigo || reserva.guid}</td>
-                <td>{reserva.atraccion_nombre || reserva.atraccion?.nombre || 'N/D'}</td>
-                <td>{reserva.fecha || reserva.created_at || 'N/D'}</td>
-                <td>{reserva.estado || 'N/D'}</td>
-                <td>${reserva.total ?? 0}</td>
+              <tr key={reserva.rev_codigo || reserva.rev_guid}>
+                <td>{reserva.rev_codigo || '—'}</td>
+                <td>{reserva.atraccion_nombre || '—'}</td>
+                <td>
+                  {reserva.rev_fecha_reserva_utc
+                    ? reserva.rev_fecha_reserva_utc.slice(0, 10)
+                    : '—'}
+                </td>
+                <td>{reserva.rev_estado || '—'}</td>
+                <td>${Number(reserva.rev_total ?? 0).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>

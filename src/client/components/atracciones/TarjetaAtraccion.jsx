@@ -16,11 +16,11 @@ function TarjetaAtraccion({ atraccion }) {
         <p>
           {atraccion?.calificacion ?? 0} ({atraccion?.total_resenas ?? 0} resenas)
         </p>
-        <p>Idiomas: {(atraccion?.idiomas || []).join(', ') || 'N/D'}</p>
+        <p>Idiomas: {(atraccion?.idiomas_disponibles || []).join(', ') || 'N/D'}</p>
         <button
           type="button"
           className="btn"
-          onClick={() => navigate(`/atracciones/${atraccion?.guid || atraccion?.id}`)}
+          onClick={() => navigate(`/atracciones/${atraccion?.id}`)}
         >
           Ver detalle
         </button>

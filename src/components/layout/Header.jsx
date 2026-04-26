@@ -4,7 +4,7 @@ import { useAuthContext } from '../../context/AuthContext'
 function Header() {
   const { estaAutenticado, usuario, logout } = useAuthContext()
   const navigate = useNavigate()
-  const esAdministrador = usuario?.roles?.includes('ADMINISTRADOR')
+  const esAdministrador = usuario?.roles?.includes('ADMIN')
   const esClienteAutenticado = estaAutenticado && !esAdministrador
 
   const handleLogout = () => {

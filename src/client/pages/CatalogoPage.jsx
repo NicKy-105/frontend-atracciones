@@ -24,12 +24,6 @@ function CatalogoPage() {
   } = useAtracciones(filtrosActivos)
 
   useEffect(() => {
-    if (paginacion.page !== filtrosActivos.page) {
-      setFiltrosActivos((prev) => ({ ...prev, page: paginacion.page }))
-    }
-  }, [filtrosActivos.page, paginacion.page])
-
-  useEffect(() => {
     const ciudad = filtrosActivos.ciudad ? filtrosActivos.ciudad : ''
     if (ciudad) {
       setSearchParams({ ciudad })

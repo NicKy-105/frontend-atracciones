@@ -37,32 +37,35 @@ function DetallePage() {
               </p>
               <p>{detalle.descripcion}</p>
               <p>Incluye: {(detalle.incluye || []).join(', ') || 'N/D'}</p>
-              <p>No incluye: {(detalle.noIncluye || []).join(', ') || 'N/D'}</p>
-              <p>Idiomas: {(detalle.idiomasDisponibles || []).join(', ') || 'N/D'}</p>
+              <p>No incluye: {(detalle.no_incluye || []).join(', ') || 'N/D'}</p>
+              <p>Idiomas: {(detalle.idiomas_disponibles || []).join(', ') || 'N/D'}</p>
 
               <h3>Tickets</h3>
               <ul>
                 {(detalle.tickets || []).map((ticket) => (
-                  <li key={ticket.tckGuid}>
-                    {ticket.tipo} - {ticket.moneda} {ticket.precio}
+                  <li key={ticket.tck_guid}>
+                    {ticket.tipo} — {ticket.moneda} {ticket.precio}
                   </li>
                 ))}
               </ul>
 
-              <h3>Horarios proximos</h3>
+              <h3>Horarios próximos</h3>
               <ul>
-                {(detalle.horariosProximos || []).map((horario, index) => (
-                  <li key={`${horario.fecha}-${horario.horaInicio}-${index}`}>
-                    {horario.fecha} {horario.horaInicio}-{horario.horaFin} ({horario.cupos} cupos)
+                {(detalle.horarios_proximos || []).map((horario, index) => (
+                  <li key={`${horario.fecha}-${horario.hora_inicio}-${index}`}>
+                    {horario.fecha} {horario.hora_inicio}
+                    {horario.hora_fin ? `–${horario.hora_fin}` : ''}{' '}
+                    {horario.cupos != null ? `(${horario.cupos} cupos)` : ''}
                   </li>
                 ))}
               </ul>
 
-              <h3>Resenas</h3>
+              <h3>Reseñas</h3>
               <ul>
-                {(detalle.resenas || []).map((resena) => (
-                  <li key={resena.guid || resena.usuario}>
-                    {resena.rating}/5 - {resena.comentario}
+                {(detalle.resenias || detalle.resenas || []).map((resena) => (
+                  <li key={resena.rsn_guid || resena.fecha_creacion}>
+                    {resena.rating}/5 — {resena.comentario}
+                    {resena.fecha_creacion ? ` (${resena.fecha_creacion.slice(0, 10)})` : ''}
                   </li>
                 ))}
               </ul>

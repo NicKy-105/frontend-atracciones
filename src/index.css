@@ -388,6 +388,104 @@ select {
   }
 }
 
+/* ── Toast ── */
+.toast-container {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 340px;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  animation: fadeInUp 0.25s ease;
+}
+
+.toast-error {
+  background: rgba(200, 40, 40, 0.92);
+  color: #fff;
+  border: 1px solid rgba(255, 100, 100, 0.4);
+}
+
+.toast-info {
+  background: rgba(20, 60, 120, 0.92);
+  color: #eaf2ff;
+  border: 1px solid rgba(85, 210, 255, 0.3);
+}
+
+.toast-success {
+  background: rgba(20, 110, 60, 0.92);
+  color: #eaffef;
+  border: 1px solid rgba(50, 200, 100, 0.35);
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 8000;
+  padding: 1rem;
+}
+
+.modal-card {
+  background: #0a1b30;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  padding: 1.5rem;
+  max-width: 480px;
+  width: 100%;
+}
+
+/* ── Misc ── */
+.text-muted {
+  color: #9ddcff;
+  opacity: 0.75;
+}
+
+.success-message {
+  border: 1px solid rgba(50, 200, 100, 0.4);
+  background: rgba(20, 110, 60, 0.2);
+  color: #b2ffd0;
+  border-radius: 10px;
+  padding: 0.7rem 0.8rem;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 900px) {
   .site-header {
     flex-wrap: wrap;

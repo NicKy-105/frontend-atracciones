@@ -9,7 +9,9 @@ import CatalogoPage from './client/pages/CatalogoPage'
 import DetallePage from './client/pages/DetallePage'
 import HomePage from './client/pages/HomePage'
 import LoginPage from './client/pages/LoginPage'
+import MisFacturasPage from './client/pages/MisFacturasPage'
 import MisReservasPage from './client/pages/MisReservasPage'
+import PerfilPage from './client/pages/PerfilPage'
 import RegistroPage from './client/pages/RegistroPage'
 import ReservaPage from './client/pages/ReservaPage'
 import AppLayout from './components/layout/AppLayout'
@@ -38,6 +40,22 @@ function App() {
           element={
             <RutaProtegida>
               <MisReservasPage />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/mis-facturas"
+          element={
+            <RutaProtegida>
+              <MisFacturasPage />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/perfil"
+          element={
+            <RutaProtegida>
+              <PerfilPage />
             </RutaProtegida>
           }
         />

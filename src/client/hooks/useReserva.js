@@ -22,8 +22,9 @@ export function useReserva() {
 
     try {
       const data = await reservasApi.crearReserva(body)
-      setReservaCreada(data)
-      return data
+      const reserva = data?.data || data
+      setReservaCreada(reserva)
+      return reserva
     } catch (err) {
       if (err?.response?.status === 409) {
         setError('Cupos insuficientes')

@@ -81,18 +81,6 @@ function FormularioAtraccion({ inicial, onGuardar, onCancelar }) {
   const submit = async (event) => {
     event.preventDefault()
     const desGuid = await resolverDestinoGuid(form.destinoNombre)
-    let imagenGuids = form.imagenGuids || []
-    if (form.imagenUrlReferencia.trim()) {
-      try {
-        const imagen = await adminApi.createImagen({ url: form.imagenUrlReferencia.trim() })
-        const imgGuid = imagen?.data?.guid || imagen?.guid
-        if (imgGuid) {
-          imagenGuids = [imgGuid]
-        }
-      } catch {
-        // Si el endpoint no existe o falla, se conserva como referencia visual local.
-      }
-    }
 
     const payload = {
       desGuid,
@@ -106,8 +94,10 @@ function FormularioAtraccion({ inicial, onGuardar, onCancelar }) {
       incluyeTransporte: Boolean(form.incluyeTransporte),
       categoriaGuids: form.categoriaGuids || [],
       idiomaGuids: form.idiomaGuids || [],
-      imagenGuids,
+      imagenGuids: form.imagenGuids || [],
       incluyeGuids: form.incluyeGuids || [],
+      // URL de imagen como referencia textual; el backend la procesa si soporta el campo
+      imagenUrl: form.imagenUrlReferencia.trim() || undefined,
     }
     await onGuardar(payload)
   }

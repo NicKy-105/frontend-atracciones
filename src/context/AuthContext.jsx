@@ -6,11 +6,25 @@ export function AuthProvider({ children }) {
   const [usuario, setUsuario] = useState(null)
   const [token, setToken] = useState(null)
 
+  const estaExpirado = (tokenJWT) => {
+    try {
+      const payload = JSON.parse(atob(tokenJWT.split('.')[1]))
+      return payload.exp < Date.now() / 1000
+    } catch {
+      return true
+    }
+  }
+
   useEffect(() => {
     const tokenGuardado = localStorage.getItem('token')
     const usuarioGuardado = localStorage.getItem('usuario')
 
     if (tokenGuardado) {
+      if (estaExpirado(tokenGuardado)) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('usuario')
+        return
+      }
       setToken(tokenGuardado)
     }
     if (usuarioGuardado) {

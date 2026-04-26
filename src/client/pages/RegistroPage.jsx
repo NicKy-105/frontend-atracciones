@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import * as authApi from '../../api/authApi'
 import { adminApi } from '../../api/adminApi'
 import ErrorMessage from '../../components/common/ErrorMessage'
@@ -9,7 +9,9 @@ const TIPOS_ID = ['CC', 'CEDULA', 'PASAPORTE', 'RUC', 'OTRO']
 
 function RegistroPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { estaAutenticado, login } = useAuthContext()
+  const destino = location.state?.from?.pathname || '/atracciones'
   const [form, setForm] = useState({
     loginEmail: '',
     password: '',
@@ -68,7 +70,7 @@ function RegistroPage() {
         )
       }
 
-      navigate('/atracciones')
+      navigate(destino, { replace: true })
     } catch (err) {
       setError(err?.response?.data?.message || 'No se pudo completar el registro')
     } finally {

@@ -58,8 +58,11 @@ export function useAtracciones(filtrosActivos = {}) {
   }, [cargarAtracciones])
 
   useEffect(() => {
-    const ciudad = filtrosActivos.ciudad || ''
-    obtenerFiltros(ciudad)
+    if (!filtrosActivos.ciudad) {
+      setFiltrosDisponibles({})
+      return
+    }
+    obtenerFiltros(filtrosActivos.ciudad)
       .then((data) => setFiltrosDisponibles(data?.data || {}))
       .catch(() => setFiltrosDisponibles({}))
   }, [filtrosActivos.ciudad])

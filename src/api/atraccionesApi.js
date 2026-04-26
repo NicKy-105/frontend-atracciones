@@ -18,13 +18,33 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error?.response?.status === 401) {
+    const status = error?.response?.status
+
+    if (status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('usuario')
       if (window.location.pathname !== '/login') {
         window.location.href = '/login'
       }
+    } else if (status === 403) {
+      window.dispatchEvent(
+        new CustomEvent('app:toast', {
+          detail: { id: Date.now(), message: 'No tienes permisos para esta acción', type: 'error' },
+        }),
+      )
+      window.location.href = '/'
+    } else if (status >= 500) {
+      window.dispatchEvent(
+        new CustomEvent('app:toast', {
+          detail: {
+            id: Date.now(),
+            message: 'Error del servidor. Intenta nuevamente.',
+            type: 'error',
+          },
+        }),
+      )
     }
+    // 409 y otros se manejan en cada hook
     return Promise.reject(error)
   },
 )

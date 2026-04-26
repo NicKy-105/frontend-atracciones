@@ -14,3 +14,8 @@ export const listarMisReservas = async () => {
   const response = await apiClient.get('/reservas')
   return response.data
 }
+
+export const cancelarReserva = async (guid, motivo) => {
+  const response = await apiClient.patch(`/reservas/${guid}/cancelar`, { motivo })
+  return response.data
+}

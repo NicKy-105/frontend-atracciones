@@ -55,7 +55,21 @@ function CatalogoPage() {
         ))}
       </div>
       {!cargando && !error && atracciones.length === 0 && (
-        <p>No se encontraron atracciones para la ciudad buscada</p>
+        <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+          <p>
+            {Object.values(filtrosActivos).some(Boolean)
+              ? 'No encontramos atracciones con esos filtros. Prueba ajustando la búsqueda.'
+              : 'No se encontraron atracciones para la ciudad buscada.'}
+          </p>
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{ marginTop: '0.75rem' }}
+            onClick={() => setFiltrosActivos({ page: 1, limit: 8 })}
+          >
+            Limpiar filtros
+          </button>
+        </div>
       )}
 
       <div className="pagination">

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import ErrorMessage from '../../components/common/ErrorMessage'
 import Spinner from '../../components/common/Spinner'
 import { useAtracciones } from '../hooks/useAtracciones'
@@ -16,12 +16,16 @@ function ConfirmacionReserva({ reserva }) {
         <p>
           <strong>Atracción:</strong> {reserva.atraccion_nombre}
         </p>
-        <p>
-          <strong>Fecha:</strong> {reserva.hor_fecha}
-        </p>
-        <p>
-          <strong>Horario:</strong> {reserva.hor_hora_inicio}
-        </p>
+        {reserva.hor_fecha && (
+          <p>
+            <strong>Fecha:</strong> {reserva.hor_fecha}
+          </p>
+        )}
+        {reserva.hor_hora_inicio && (
+          <p>
+            <strong>Horario:</strong> {reserva.hor_hora_inicio}
+          </p>
+        )}
         <p>
           <strong>Subtotal:</strong> ${Number(reserva.rev_subtotal ?? 0).toFixed(2)}
         </p>
@@ -33,17 +37,25 @@ function ConfirmacionReserva({ reserva }) {
         </p>
         {(reserva.detalle || []).length > 0 && (
           <>
-            <h3>Detalle</h3>
+            <h3>Detalle de líneas</h3>
             <ul>
               {reserva.detalle.map((linea, idx) => (
                 <li key={linea.tck_guid || idx}>
-                  {linea.tipo || linea.ticket_nombre} — {linea.cantidad} x $
-                  {Number(linea.precio_unitario ?? 0).toFixed(2)}
+                  {linea.tck_tipo_participante || linea.tipo || 'Ticket'} — {linea.cantidad} x $
+                  {Number(linea.precio_unit ?? linea.precio_unitario ?? 0).toFixed(2)}
                 </li>
               ))}
             </ul>
           </>
         )}
+        <div className="inline-form" style={{ marginTop: '1.5rem' }}>
+          <Link to="/mis-reservas" className="btn">
+            Ver mis reservas
+          </Link>
+          <Link to="/atracciones" className="btn btn-outline">
+            Volver al catálogo
+          </Link>
+        </div>
       </div>
     </section>
   )
@@ -57,16 +69,9 @@ function ReservaPage() {
   const { crearReserva, reservaCreada, error: errorReserva, cargando: creando } = useReserva()
 
   useEffect(() => {
-    cargarDetalle(guid)
-      .then((data) => {
-        // horarios_proximos son informativos; el hor_guid viene de cada horario
-        const primero = data?.horarios_proximos?.[0]
-        if (primero?.hor_guid) setHorGuid(primero.hor_guid)
-      })
-      .catch(() => {})
+    cargarDetalle(guid).catch(() => {})
   }, [guid, cargarDetalle])
 
-  // tck_guid es la clave de cada ticket en el objeto cantidades
   const lineas = useMemo(
     () =>
       Object.entries(cantidades)
@@ -85,6 +90,7 @@ function ReservaPage() {
 
   const iva = subtotal * 0.15
   const total = subtotal + iva
+  const sinTickets = lineas.length === 0
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -92,58 +98,71 @@ function ReservaPage() {
   }
 
   if (cargando && !detalle && !error) return <Spinner message="Cargando atraccion..." />
+  if (reservaCreada) return <ConfirmacionReserva reserva={reservaCreada} />
 
-  if (reservaCreada) {
-    return <ConfirmacionReserva reserva={reservaCreada} />
-  }
+  const sinHorarios = !cargando && detalle && (detalle.horarios_proximos || []).length === 0
 
   return (
     <section className="page-section">
       <h1>Reservar {detalle?.nombre}</h1>
       <ErrorMessage mensaje={error || errorReserva} />
-      <form className="reserva-form" onSubmit={handleSubmit}>
-        <label>
-          Horario disponible
-          <select value={horGuid} onChange={(e) => setHorGuid(e.target.value)} required>
-            <option value="">Seleccione horario</option>
-            {(detalle?.horarios_proximos || []).map((horario, index) => (
-              <option
-                key={horario.hor_guid || index}
-                value={horario.hor_guid}
-              >
-                {horario.fecha} {horario.hora_inicio}
-                {horario.cupos != null ? ` — ${horario.cupos} cupos` : ''}
-              </option>
+
+      {sinHorarios && (
+        <p className="text-muted">No hay horarios disponibles en los próximos 7 días.</p>
+      )}
+
+      {!sinHorarios && detalle && (
+        <form className="reserva-form" onSubmit={handleSubmit}>
+          <label>
+            Horario disponible
+            <select value={horGuid} onChange={(e) => setHorGuid(e.target.value)} required>
+              <option value="">Seleccione horario</option>
+              {(detalle.horarios_proximos || []).map((horario, index) => (
+                <option key={horario.hor_guid || index} value={horario.hor_guid}>
+                  {horario.fecha} {horario.hora_inicio}
+                  {horario.cupos != null ? ` — ${horario.cupos} cupos` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="tickets-box">
+            {(detalle.tickets || []).map((ticket) => (
+              <label key={ticket.tck_guid}>
+                {ticket.tipo} (${ticket.precio})
+                <input
+                  type="number"
+                  min="0"
+                  value={cantidades[ticket.tck_guid] || 0}
+                  onChange={(e) =>
+                    setCantidades((prev) => ({ ...prev, [ticket.tck_guid]: e.target.value }))
+                  }
+                />
+              </label>
             ))}
-          </select>
-        </label>
+          </div>
 
-        <div className="tickets-box">
-          {(detalle?.tickets || []).map((ticket) => (
-            <label key={ticket.tck_guid}>
-              {ticket.tipo} (${ticket.precio})
-              <input
-                type="number"
-                min="0"
-                value={cantidades[ticket.tck_guid] || 0}
-                onChange={(e) =>
-                  setCantidades((prev) => ({ ...prev, [ticket.tck_guid]: e.target.value }))
-                }
-              />
-            </label>
-          ))}
-        </div>
+          {sinTickets && (
+            <p className="text-muted">Selecciona al menos un ticket para continuar.</p>
+          )}
 
-        <div className="totales">
-          <p>Subtotal: ${subtotal.toFixed(2)}</p>
-          <p>IVA 15%: ${iva.toFixed(2)}</p>
-          <p>Total: ${total.toFixed(2)}</p>
-        </div>
+          <div className="totales">
+            <p>Subtotal: ${subtotal.toFixed(2)}</p>
+            <p>IVA 15%: ${iva.toFixed(2)}</p>
+            <p>
+              <strong>Total: ${total.toFixed(2)}</strong>
+            </p>
+          </div>
 
-        <button type="submit" className="btn" disabled={creando || !horGuid || !lineas.length}>
-          {creando ? 'Procesando...' : 'Confirmar reserva'}
-        </button>
-      </form>
+          <button
+            type="submit"
+            className="btn"
+            disabled={creando || !horGuid || sinTickets}
+          >
+            {creando ? 'Procesando...' : 'Confirmar reserva'}
+          </button>
+        </form>
+      )}
     </section>
   )
 }

@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
-import Header from './Header'
+import Toast from '../common/Toast'
 import Footer from './Footer'
+import Header from './Header'
 
 function AppLayout() {
   return (
@@ -10,6 +11,7 @@ function AppLayout() {
         <Outlet />
       </main>
       <Footer />
+      <Toast />
     </div>
   )
 }

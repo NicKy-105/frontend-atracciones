@@ -22,7 +22,9 @@ function Header() {
         <NavLink to="/">Inicio</NavLink>
         <NavLink to="/atracciones">Catalogo</NavLink>
         {esClienteAutenticado && <NavLink to="/mis-reservas">Mis Reservas</NavLink>}
-        {esAdministrador && <NavLink to="/admin">Administracion</NavLink>}
+        {esClienteAutenticado && <NavLink to="/mis-facturas">Mis Facturas</NavLink>}
+        {esClienteAutenticado && <NavLink to="/perfil">Mi Perfil</NavLink>}
+        {esAdministrador && <NavLink to="/admin">Administración</NavLink>}
       </nav>
 
       <div className="header-auth">

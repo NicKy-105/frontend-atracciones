@@ -52,9 +52,15 @@ export const adminApi = {
   },
 
   // ─── Tickets ──────────────────────────────────────────────────────────────
-  // No existe GET /admin/tickets en el backend; la lista se obtiene
-  // desde el detalle de cada atracción (GET /admin/atracciones/{guid})
+  // Obtiene los tickets de una atracción específica desde su detalle
   listarTicketsAdmin: async () => [],
+  listarTicketsDeAtraccion: async (atGuid) => {
+    if (!atGuid) return []
+    const response = await apiClient.get(`/admin/atracciones/${atGuid}`)
+    const detalle = response.data?.data || response.data
+    // El backend puede devolver tickets en distintos campos
+    return detalle?.tickets ?? detalle?.ticket ?? []
+  },
   createTicket: async (payload) => {
     const response = await apiClient.post('/admin/tickets', payload)
     return response.data

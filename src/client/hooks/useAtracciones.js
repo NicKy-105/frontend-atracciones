@@ -47,7 +47,7 @@ export function useAtracciones(filtrosActivos = {}) {
         totalPages: pagination.totalPages || 1,
       })
     } catch (err) {
-      setError(err?.response?.data?.message || 'No se pudo cargar el catalogo')
+      setError(err?.response?.data?.message || 'No se pudo cargar el catálogo')
     } finally {
       setCargando(false)
     }
@@ -57,13 +57,15 @@ export function useAtracciones(filtrosActivos = {}) {
     cargarAtracciones()
   }, [cargarAtracciones])
 
+  // Carga filtros siempre (no solo cuando hay ciudad).
+  // Cuando cambia ciudad, recarga con ese parámetro para obtener subtipos dependientes.
   useEffect(() => {
-    if (!filtrosActivos.ciudad) {
-      setFiltrosDisponibles({})
-      return
-    }
-    obtenerFiltros(filtrosActivos.ciudad)
-      .then((data) => setFiltrosDisponibles(data?.data || {}))
+    obtenerFiltros(filtrosActivos.ciudad || undefined)
+      .then((resp) => {
+        // El backend puede devolver { data: {...} } o el objeto directamente
+        const raw = resp?.data ?? resp ?? {}
+        setFiltrosDisponibles(raw)
+      })
       .catch(() => setFiltrosDisponibles({}))
   }, [filtrosActivos.ciudad])
 

@@ -3,6 +3,7 @@ import * as reseniasApi from '../../api/reseniasApi'
 import * as reservasApi from '../../api/reservasApi'
 import ErrorMessage from '../../components/common/ErrorMessage'
 import Spinner from '../../components/common/Spinner'
+import { estadoBadgeClass, estadoLabel } from '../../utils/estadoReserva'
 import { useMisReservas } from '../hooks/useMisReservas'
 
 // ──────────────────────────────────────────────
@@ -14,10 +15,7 @@ function ModalCancelar({ reserva, onCerrar, onExito }) {
   const [error, setError] = useState('')
 
   const handleCancelar = async () => {
-    if (!motivo.trim()) {
-      setError('Por favor indica el motivo de la cancelación')
-      return
-    }
+    if (!motivo.trim()) { setError('Indica el motivo de la cancelación'); return }
     setCargando(true)
     setError('')
     try {
@@ -38,26 +36,22 @@ function ModalCancelar({ reserva, onCerrar, onExito }) {
     <div className="modal-overlay" onClick={onCerrar}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <h2>Cancelar reserva</h2>
-        <p>
-          Código: <strong>{reserva.rev_codigo}</strong>
-        </p>
-        <label>
-          Motivo de cancelación
+        <p>Código: <strong>{reserva.rev_codigo}</strong></p>
+        <div className="form-group" style={{ marginTop: '0.75rem' }}>
+          <label htmlFor="motivo-cancel">Motivo de cancelación</label>
           <textarea
+            id="motivo-cancel"
             value={motivo}
             onChange={(e) => setMotivo(e.target.value)}
             rows={3}
-            style={{ width: '100%', marginTop: '0.5rem' }}
             placeholder="Describe el motivo..."
           />
-        </label>
+        </div>
         <ErrorMessage mensaje={error} />
-        <div className="inline-form" style={{ marginTop: '1rem' }}>
-          <button className="btn" onClick={handleCancelar} disabled={cargando}>
-            {cargando ? 'Cancelando...' : 'Confirmar cancelación'}
-          </button>
-          <button className="btn btn-outline" onClick={onCerrar}>
-            Volver
+        <div className="modal-actions" style={{ marginTop: '1rem' }}>
+          <button className="btn btn-outline" onClick={onCerrar} disabled={cargando}>Volver</button>
+          <button className="btn btn-danger" onClick={handleCancelar} disabled={cargando}>
+            {cargando ? <><span className="spinner spinner-sm" /> Cancelando...</> : 'Confirmar cancelación'}
           </button>
         </div>
       </div>
@@ -79,11 +73,7 @@ function FormResenia({ reserva, onCerrar }) {
     setCargando(true)
     setError('')
     try {
-      await reseniasApi.crearResenia({
-        rev_guid: reserva.rev_guid,
-        rating,
-        comentario,
-      })
+      await reseniasApi.crearResenia({ rev_guid: reserva.rev_guid, rating, comentario })
       setEnviado(true)
     } catch (err) {
       if (err?.response?.status === 409) {
@@ -98,59 +88,50 @@ function FormResenia({ reserva, onCerrar }) {
 
   if (enviado) {
     return (
-      <div className="reserva-card" style={{ marginTop: '0.5rem' }}>
-        <p>¡Reseña enviada! Gracias por tu opinión.</p>
-        <button className="btn btn-outline" onClick={onCerrar}>
-          Cerrar
-        </button>
+      <div className="success-message" style={{ margin: '0.5rem 0' }}>
+        <span>✓</span><span>¡Reseña enviada! Gracias por tu opinión.</span>
+        <button className="btn btn-outline btn-sm" onClick={onCerrar} style={{ marginLeft: 'auto' }}>Cerrar</button>
       </div>
     )
   }
 
   return (
-    <div className="reserva-card" style={{ marginTop: '0.5rem' }}>
-      <h4>Dejar reseña — {reserva.atraccion_nombre}</h4>
-      <label>
-        Rating
-        <div className="inline-form" style={{ marginTop: '0.25rem' }}>
+    <div className="reserva-card" style={{ margin: '0.5rem 0' }}>
+      <h4 style={{ marginBottom: '0.75rem' }}>Reseña — {reserva.atraccion_nombre}</h4>
+      <div className="form-group">
+        <label>Calificación</label>
+        <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', marginTop: '0.25rem' }}>
           {[1, 2, 3, 4, 5].map((n) => (
             <button
               key={n}
               type="button"
               onClick={() => setRating(n)}
               style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '1.5rem',
-                color: n <= rating ? '#f5c518' : 'rgba(255,255,255,0.3)',
-                padding: '0',
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: '1.6rem', padding: 0,
+                color: n <= rating ? '#f5c518' : 'rgba(255,255,255,0.25)',
               }}
-            >
-              ★
-            </button>
+            >★</button>
           ))}
-          <span>{rating}/5</span>
+          <span className="text-muted text-sm" style={{ marginLeft: '0.5rem' }}>{rating}/5</span>
         </div>
-      </label>
-      <label>
-        Comentario
+      </div>
+      <div className="form-group" style={{ marginTop: '0.5rem' }}>
+        <label htmlFor="resenia-comentario">Comentario</label>
         <textarea
+          id="resenia-comentario"
           value={comentario}
           onChange={(e) => setComentario(e.target.value)}
           rows={3}
-          style={{ width: '100%', marginTop: '0.25rem' }}
           placeholder="Comparte tu experiencia..."
         />
-      </label>
+      </div>
       <ErrorMessage mensaje={error} />
       <div className="inline-form" style={{ marginTop: '0.75rem' }}>
         <button className="btn" onClick={handleEnviar} disabled={cargando}>
-          {cargando ? 'Enviando...' : 'Enviar reseña'}
+          {cargando ? <><span className="spinner spinner-sm" /> Enviando...</> : 'Enviar reseña'}
         </button>
-        <button className="btn btn-outline" onClick={onCerrar}>
-          Cancelar
-        </button>
+        <button className="btn btn-outline" onClick={onCerrar}>Cancelar</button>
       </div>
     </div>
   )
@@ -160,8 +141,8 @@ function FormResenia({ reserva, onCerrar }) {
 // Página principal
 // ──────────────────────────────────────────────
 function MisReservasPage() {
-  const [guid, setGuid] = useState('')
-  const { reservas, cargando, error, cargarReservas, buscarReservaPorGuid } = useMisReservas()
+  const [busqueda, setBusqueda] = useState('')
+  const { reservas, cargando, error, cargarReservas, buscarReserva } = useMisReservas()
   const [modalCancelar, setModalCancelar] = useState(null)
   const [reseniaPara, setReseniaPara] = useState(null)
 
@@ -169,116 +150,117 @@ function MisReservasPage() {
     cargarReservas().catch(() => {})
   }, [cargarReservas])
 
-  const buscar = async (event) => {
+  const handleBuscar = (event) => {
     event.preventDefault()
-    if (!guid.trim()) {
-      await cargarReservas().catch(() => {})
-      return
-    }
-    await buscarReservaPorGuid(guid.trim())
+    buscarReserva(busqueda)
+  }
+
+  const handleVerTodas = () => {
+    setBusqueda('')
+    cargarReservas().catch(() => {})
   }
 
   return (
     <section className="page-section">
-      <h1>Mis reservas</h1>
+      <h1 style={{ marginBottom: '1.5rem' }}>Mis reservas</h1>
 
-      <form className="inline-form" onSubmit={buscar}>
+      <form className="inline-form" onSubmit={handleBuscar} style={{ marginBottom: '1rem' }}>
         <input
           type="text"
-          placeholder="Buscar por código o GUID"
-          value={guid}
-          onChange={(e) => setGuid(e.target.value)}
+          placeholder="Buscar por código (ej. RES-001)"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          style={{ flex: 1 }}
         />
-        <button className="btn btn-outline" type="submit">
-          Buscar
-        </button>
-        <button
-          className="btn btn-outline"
-          type="button"
-          onClick={() => {
-            setGuid('')
-            cargarReservas().catch(() => {})
-          }}
-        >
-          Ver todas
-        </button>
+        <button className="btn btn-outline btn-sm" type="submit">Buscar</button>
+        <button className="btn btn-outline btn-sm" type="button" onClick={handleVerTodas}>Ver todas</button>
       </form>
 
       {cargando && <Spinner message="Consultando reservas..." />}
       <ErrorMessage mensaje={error} />
 
       {!cargando && (
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Código</th>
-              <th>Atracción</th>
-              <th>Fecha</th>
-              <th>Estado</th>
-              <th>Total</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {reservas.length === 0 && (
+        <div className="table-wrap">
+          <table className="admin-table">
+            <thead>
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', color: '#9ddcff' }}>
-                  No se encontraron reservas.
-                </td>
+                <th>Código</th>
+                <th>Atracción</th>
+                <th>Fecha reserva</th>
+                <th>Estado</th>
+                <th>Total</th>
+                <th>Acciones</th>
               </tr>
-            )}
-            {reservas.map((reserva) => {
-              const activa = reserva.rev_estado === 'A'
-              const mostrandoResenia = reseniaPara?.rev_guid === reserva.rev_guid
-              return (
-                <>
-                  <tr key={reserva.rev_codigo || reserva.rev_guid}>
-                    <td>{reserva.rev_codigo || '—'}</td>
-                    <td>{reserva.atraccion_nombre || '—'}</td>
-                    <td>
-                      {reserva.rev_fecha_reserva_utc
-                        ? reserva.rev_fecha_reserva_utc.slice(0, 10)
-                        : '—'}
-                    </td>
-                    <td>{reserva.rev_estado || '—'}</td>
-                    <td>${Number(reserva.rev_total ?? 0).toFixed(2)}</td>
-                    <td>
-                      {activa && (
-                        <>
-                          <button
-                            className="btn btn-outline"
-                            onClick={() => setModalCancelar(reserva)}
-                            style={{ marginRight: '0.5rem' }}
-                          >
-                            Cancelar
-                          </button>
-                          <button
-                            className="btn btn-outline"
-                            onClick={() =>
-                              setReseniaPara(mostrandoResenia ? null : reserva)
-                            }
-                          >
-                            {mostrandoResenia ? 'Ocultar' : 'Reseña'}
-                          </button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                  {mostrandoResenia && (
-                    <tr>
-                      <td colSpan={6}>
-                        <FormResenia
-                          reserva={reserva}
-                          onCerrar={() => setReseniaPara(null)}
-                        />
+            </thead>
+            <tbody>
+              {reservas.length === 0 && (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+                    {busqueda ? 'No se encontraron reservas con ese código.' : 'No tienes reservas aún.'}
+                  </td>
+                </tr>
+              )}
+              {reservas.map((reserva) => {
+                const activa = ['A', 'ACTIVA', 'ACTIVE', 'CONFIRMADA', 'C'].includes(
+                  String(reserva.rev_estado ?? '').toUpperCase()
+                )
+                const mostrandoResenia = reseniaPara?.rev_guid === reserva.rev_guid
+                const key = reserva.rev_codigo ?? reserva.rev_guid ?? Math.random()
+
+                return (
+                  <>
+                    <tr key={key}>
+                      <td>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                          {reserva.rev_codigo || '—'}
+                        </span>
+                      </td>
+                      <td>{reserva.atraccion_nombre || '—'}</td>
+                      <td>
+                        {reserva.rev_fecha_reserva_utc
+                          ? String(reserva.rev_fecha_reserva_utc).slice(0, 10)
+                          : '—'}
+                      </td>
+                      <td>
+                        <span className={estadoBadgeClass(reserva.rev_estado)}>
+                          {estadoLabel(reserva.rev_estado)}
+                        </span>
+                      </td>
+                      <td>${Number(reserva.rev_total ?? 0).toFixed(2)}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                          {activa && (
+                            <button
+                              className="btn btn-danger btn-sm"
+                              onClick={() => setModalCancelar(reserva)}
+                            >
+                              Cancelar
+                            </button>
+                          )}
+                          {activa && (
+                            <button
+                              className="btn btn-outline btn-sm"
+                              onClick={() => setReseniaPara(mostrandoResenia ? null : reserva)}
+                            >
+                              {mostrandoResenia ? 'Ocultar' : '★ Reseña'}
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
-                  )}
-                </>
-              )
-            })}
-          </tbody>
-        </table>
+                    {mostrandoResenia && (
+                      <tr key={`resenia-${key}`}>
+                        <td colSpan={6} style={{ padding: '0.5rem 0.75rem' }}>
+                          <FormResenia reserva={reserva} onCerrar={() => setReseniaPara(null)} />
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {modalCancelar && (

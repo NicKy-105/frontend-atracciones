@@ -21,18 +21,25 @@ apiClient.interceptors.response.use(
     const status = error?.response?.status
 
     if (status === 401) {
+      // Solo limpiar sesión y redirigir si el token ya existía (no en un intento de login)
+      const hayToken = Boolean(localStorage.getItem('token'))
       localStorage.removeItem('token')
       localStorage.removeItem('usuario')
-      if (window.location.pathname !== '/login') {
+      if (hayToken && window.location.pathname !== '/login') {
         window.location.href = '/login'
       }
     } else if (status === 403) {
+      // Notificar sin redirigir — cada componente maneja sus propios 403
+      // (ej: registro puede obtener 403 en /admin/clientes con token CLIENTE)
       window.dispatchEvent(
         new CustomEvent('app:toast', {
-          detail: { id: Date.now(), message: 'No tienes permisos para esta acción', type: 'error' },
+          detail: {
+            id: Date.now(),
+            message: 'No tienes permisos para esta acción',
+            type: 'error',
+          },
         }),
       )
-      window.location.href = '/'
     } else if (status >= 500) {
       window.dispatchEvent(
         new CustomEvent('app:toast', {

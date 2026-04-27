@@ -44,7 +44,8 @@ export function useAtracciones(filtrosActivos = {}) {
         page: pagination.page || filtrosActivos.page || 1,
         limit: pagination.limit || filtrosActivos.limit || 8,
         total: pagination.total || 0,
-        totalPages: pagination.totalPages || 1,
+        // El backend puede devolver total_pages (snake_case) o totalPages (camelCase)
+        totalPages: pagination.total_pages ?? pagination.totalPages ?? 1,
       })
     } catch (err) {
       setError(err?.response?.data?.message || 'No se pudo cargar el catalogo')

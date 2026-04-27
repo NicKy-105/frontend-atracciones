@@ -60,19 +60,23 @@ function RegistroPage() {
       const usuarioLogin = data?.data?.login || form.loginEmail
       const roles = data?.data?.roles || []
       login(token, { login: usuarioLogin, roles })
-      try {
-        await adminApi.createCliente({
-          login: usuarioLogin,
-          nombres: form.nombres,
-          apellidos: form.apellidos,
-          correo: form.loginEmail,
-          tipo_identificacion: form.tipo_identificacion,
-          numero_identificacion: form.numero_identificacion,
-          telefono: form.telefono || undefined,
-        })
-      } catch {
-        setErrorGlobal('Cuenta creada, pero no se pudo guardar el perfil. Puedes continuar usando la aplicación.')
-      }
+
+      // Intentar crear perfil de cliente en segundo plano.
+      // El endpoint /admin/clientes puede devolver 403 si el rol del token es CLIENTE;
+      // en ese caso el backend ya habrá creado el perfil durante el registro.
+      // El error es no-fatal: navegamos igualmente.
+      adminApi.createCliente({
+        login: usuarioLogin,
+        nombres: form.nombres,
+        apellidos: form.apellidos,
+        correo: form.loginEmail,
+        tipo_identificacion: form.tipo_identificacion,
+        numero_identificacion: form.numero_identificacion,
+        telefono: form.telefono || undefined,
+      }).catch(() => {
+        // Silencioso: el perfil se crea automáticamente en el backend o se puede editar desde /perfil
+      })
+
       navigate(destino, { replace: true })
     } catch (err) {
       setErrorGlobal(err?.response?.data?.message || 'No se pudo completar el registro. Intenta de nuevo.')

@@ -8,10 +8,17 @@ export function AuthProvider({ children }) {
 
   const estaExpirado = (tokenJWT) => {
     try {
-      const payload = JSON.parse(atob(tokenJWT.split('.')[1]))
-      return payload.exp < Date.now() / 1000
+      // JWT usa base64url (- y _ en lugar de + y /) sin padding.
+      // atob solo acepta base64 estándar, así que se normaliza antes de decodificar.
+      const base64Url = tokenJWT.split('.')[1]
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+      const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=')
+      const payload = JSON.parse(atob(padded))
+      return typeof payload.exp === 'number' && payload.exp < Date.now() / 1000
     } catch {
-      return true
+      // Si no se puede decodificar el token, dejarlo pasar
+      // (el servidor lo rechazará con 401 si es inválido)
+      return false
     }
   }
 

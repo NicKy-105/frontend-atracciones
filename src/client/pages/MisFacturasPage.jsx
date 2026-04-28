@@ -5,32 +5,39 @@ import Spinner from '../../components/common/Spinner'
 
 /**
  * Listado de facturas del cliente autenticado.
- *
- * Endpoint: GET /api/v1/facturas/mis-facturas (cliente autenticado).
- * Respuesta: ApiListResponse<FacturaResponse>.
- *
- * Limitación conocida: el backend público no expone hoy un endpoint para que
- * el cliente "Genere" su propia factura desde el portal. Por ello no se
- * muestra acción de generar; las facturas aparecen aquí cuando ya fueron
- * emitidas (proceso administrativo o automático tras la reserva).
+ * Endpoint: GET /api/v1/facturas/mis-facturas
+ * Respuesta: ApiListResponse<FacturaResponse>
+ * Campos: fac_guid, fac_numero, rev_codigo, total, moneda, fecha_emision,
+ *         estado, nombre_receptor, correo_receptor
  */
 
 function ModalFactura({ factura, onCerrar }) {
   return (
     <div className="modal-overlay" onClick={onCerrar}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <h2>Factura #{factura.fct_numero || '—'}</h2>
-        <p><strong>Receptor:</strong> {factura.fct_receptor || '—'}</p>
+        <h2>Factura #{factura.fac_numero || '—'}</h2>
+        {factura.rev_codigo && (
+          <p><strong>Código reserva:</strong> <span style={{ fontFamily: 'monospace' }}>{factura.rev_codigo}</span></p>
+        )}
+        {factura.nombre_receptor && (
+          <p><strong>Receptor:</strong> {factura.nombre_receptor}</p>
+        )}
+        {factura.correo_receptor && (
+          <p><strong>Correo:</strong> {factura.correo_receptor}</p>
+        )}
         <p>
           <strong>Fecha de emisión:</strong>{' '}
-          {factura.fct_fecha_emision
-            ? String(factura.fct_fecha_emision).slice(0, 10)
+          {factura.fecha_emision
+            ? String(factura.fecha_emision).slice(0, 10)
             : '—'}
         </p>
-        <p><strong>Total:</strong> ${Number(factura.fct_total ?? 0).toFixed(2)}</p>
-        <p><strong>Estado:</strong> {factura.fct_estado || '—'}</p>
-        {factura.fct_observacion && (
-          <p><strong>Observación:</strong> {factura.fct_observacion}</p>
+        <p>
+          <strong>Total:</strong> ${Number(factura.total ?? 0).toFixed(2)}
+          {factura.moneda ? ` ${factura.moneda}` : ''}
+        </p>
+        <p><strong>Estado:</strong> {factura.estado || '—'}</p>
+        {factura.observacion && (
+          <p><strong>Observación:</strong> {factura.observacion}</p>
         )}
         <button className="btn btn-outline" style={{ marginTop: '1rem' }} onClick={onCerrar}>
           Cerrar
@@ -61,7 +68,12 @@ function MisFacturasPage() {
       const limit = pagination?.limit ?? 10
       setTotalPages(Math.max(1, Math.ceil(total / limit)))
     } catch (err) {
-      setError(err?.response?.data?.message || 'No se pudieron cargar las facturas.')
+      const status = err?.response?.status
+      if (status === 401 || status === 403) {
+        setError('No tienes permisos para ver las facturas. Verifica que hayas iniciado sesión.')
+      } else {
+        setError(err?.response?.data?.message || 'No se pudieron cargar las facturas.')
+      }
     } finally {
       setCargando(false)
     }
@@ -75,17 +87,17 @@ function MisFacturasPage() {
       <ErrorMessage mensaje={error} />
       {cargando && <Spinner message="Cargando facturas..." />}
 
-      {!cargando && (
+      {!cargando && !error && (
         <div className="table-wrap">
           <table className="admin-table">
             <thead>
               <tr>
                 <th>Número</th>
+                <th>Código reserva</th>
                 <th>Fecha emisión</th>
-                <th>Subtotal</th>
-                <th>IVA</th>
                 <th>Total</th>
                 <th>Estado</th>
+                <th>Receptor</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -98,17 +110,24 @@ function MisFacturasPage() {
                 </tr>
               )}
               {facturas.map((f) => (
-                <tr key={f.fct_guid}>
+                <tr key={f.fac_guid}>
                   <td>
                     <span style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
-                      {f.fct_numero || '—'}
+                      {f.fac_numero || '—'}
                     </span>
                   </td>
-                  <td>{f.fct_fecha_emision ? String(f.fct_fecha_emision).slice(0, 10) : '—'}</td>
-                  <td>${Number(f.fct_subtotal ?? 0).toFixed(2)}</td>
-                  <td>${Number(f.fct_valor_iva ?? 0).toFixed(2)}</td>
-                  <td><strong>${Number(f.fct_total ?? 0).toFixed(2)}</strong></td>
-                  <td>{f.fct_estado || '—'}</td>
+                  <td>
+                    <span style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                      {f.rev_codigo || '—'}
+                    </span>
+                  </td>
+                  <td>{f.fecha_emision ? String(f.fecha_emision).slice(0, 10) : '—'}</td>
+                  <td>
+                    <strong>${Number(f.total ?? 0).toFixed(2)}</strong>
+                    {f.moneda ? <span className="text-muted text-sm"> {f.moneda}</span> : ''}
+                  </td>
+                  <td>{f.estado || '—'}</td>
+                  <td>{f.nombre_receptor || '—'}</td>
                   <td>
                     <button
                       className="btn btn-outline btn-sm"

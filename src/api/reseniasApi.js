@@ -1,5 +1,14 @@
 import { apiClient } from './atraccionesApi'
 
+/**
+ * GET /api/v1/resenias?atraccionGuid={guid}
+ * Devuelve reseñas de una atracción (sin autenticación requerida).
+ */
+export const listarResenias = async (params = {}) => {
+  const response = await apiClient.get('/resenias', { params })
+  return response.data
+}
+
 export const crearResenia = async (body) => {
   // body: { rev_guid, rating, comentario }
   const response = await apiClient.post('/resenias', body)

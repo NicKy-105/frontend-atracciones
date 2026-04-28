@@ -26,13 +26,23 @@ function FormularioTicket({ inicial, onGuardar, onCancelar }) {
   const [atracciones, setAtracciones] = useState([])
   const [cargando, setCargando] = useState(false)
   const [guardando, setGuardando] = useState(false)
+  const [errorCarga, setErrorCarga] = useState('')
 
   useEffect(() => {
     setCargando(true)
+    setErrorCarga('')
     adminApi
       .listarAtraccionesAdmin({ page: 1, limit: 200 })
       .then((data) => setAtracciones(Array.isArray(data) ? data : []))
-      .catch(() => setAtracciones([]))
+      .catch((err) => {
+        const status = err?.response?.status
+        if (status === 401 || status === 403) {
+          setErrorCarga('Sin permisos para cargar atracciones. Verifica que hayas iniciado sesión como administrador.')
+        } else {
+          setErrorCarga(err?.response?.data?.message || 'Error al cargar atracciones. Intenta recargar la página.')
+        }
+        setAtracciones([])
+      })
       .finally(() => setCargando(false))
   }, [])
 
@@ -107,9 +117,12 @@ function FormularioTicket({ inicial, onGuardar, onCancelar }) {
           </select>
         )}
         {errores.at_guid && <span className="field-error">⚠ {errores.at_guid}</span>}
-        {!cargando && atracciones.length === 0 && (
+        {!cargando && errorCarga && (
+          <span className="field-error">⚠ {errorCarga}</span>
+        )}
+        {!cargando && !errorCarga && atracciones.length === 0 && (
           <span className="field-error" style={{ color: 'var(--text-muted)' }}>
-            No se encontraron atracciones. Crea una primero.
+            No hay atracciones registradas. Crea una primero.
           </span>
         )}
       </div>

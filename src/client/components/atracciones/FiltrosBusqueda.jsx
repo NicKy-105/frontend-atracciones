@@ -35,7 +35,7 @@ function extraerIdiomas(f) {
   )
 }
 
-/** Normaliza un item de filtro a { value, label, children } */
+/** Normaliza un item de filtro usando tagname como value (tipos/categorías). */
 function normalItem(item) {
   return {
     value: item.tagname ?? item.value ?? item.guid ?? item.id ?? item.nombre ?? item.name ?? '',
@@ -44,10 +44,23 @@ function normalItem(item) {
   }
 }
 
+/**
+ * Normaliza un item de filtro usando name como value.
+ * Se usa para Ciudad e Idioma porque el backend espera el nombre legible
+ * en los query params Ciudad= e Idioma= (no el tagname en minúscula).
+ */
+function normalItemByName(item) {
+  return {
+    value: item.name ?? item.nombre ?? item.tagname ?? item.value ?? '',
+    label: item.name ?? item.nombre ?? item.label ?? item.tagname ?? '',
+    children: item.childFilterOptions ?? item.subtipos ?? item.children ?? [],
+  }
+}
+
 function FiltrosBusqueda({ filtrosDisponibles, filtrosActivos, onFiltroChange }) {
-  const ciudades = extraerCiudades(filtrosDisponibles).map(normalItem)
+  const ciudades = extraerCiudades(filtrosDisponibles).map(normalItemByName)
   const tipos = extraerTipos(filtrosDisponibles).map(normalItem)
-  const idiomas = extraerIdiomas(filtrosDisponibles).map(normalItem)
+  const idiomas = extraerIdiomas(filtrosDisponibles).map(normalItemByName)
 
   const tipoSeleccionado = tipos.find((t) => t.value === filtrosActivos.tipo)
   const subtipos = (tipoSeleccionado?.children ?? []).map(normalItem)

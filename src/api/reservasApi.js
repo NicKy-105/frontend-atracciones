@@ -34,3 +34,13 @@ export const cancelarReserva = async (guid, motivo) => {
   const response = await apiClient.put(`/reservas/${guid}/cancelar`, { motivo })
   return response.data
 }
+
+/**
+ * POST /api/v1/reservas/{guid}/confirmar-pago
+ * Body: { nombre_receptor, apellido_receptor?, correo_receptor, telefono_receptor?, observacion? }
+ * Respuesta: FacturaResponse con fac_guid, fac_numero, rev_codigo, total, etc.
+ */
+export const confirmarPago = async (revGuid, body) => {
+  const response = await apiClient.post(`/reservas/${revGuid}/confirmar-pago`, body)
+  return response.data
+}

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { obtenerHorariosDisponibles, obtenerTicketsAtraccion } from '../../api/atraccionesApi'
+import * as reservasApi from '../../api/reservasApi'
 import ErrorMessage from '../../components/common/ErrorMessage'
 import Spinner from '../../components/common/Spinner'
 import { useAuthContext } from '../../context/AuthContext'
@@ -16,53 +17,216 @@ import {
 import { useAtracciones } from '../hooks/useAtracciones'
 import { useReserva } from '../hooks/useReserva'
 
-// Coinciden con `tipo_identificacion` del backend (≤ 20 chars).
 const TIPOS_IDENTIFICACION = ['CEDULA', 'PASAPORTE', 'RUC', 'OTRO']
 
-// ─── Confirmación ────────────────────────────────────────────────────────────
-function ConfirmacionReserva({ reserva }) {
-  const rows = [
-    ['Código', reserva.rev_codigo],
-    ['Atracción', reserva.atraccion_nombre],
-    reserva.hor_fecha && ['Fecha', reserva.hor_fecha],
-    reserva.hor_hora_inicio && ['Horario', reserva.hor_hora_inicio],
-    ['Subtotal', `$${Number(reserva.rev_subtotal ?? 0).toFixed(2)}`],
-    ['IVA (15%)', `$${Number(reserva.rev_valor_iva ?? 0).toFixed(2)}`],
-    ['Total', `$${Number(reserva.rev_total ?? 0).toFixed(2)}`],
-  ].filter(Boolean)
-
+// ─── Confirmación final con factura ──────────────────────────────────────────
+function ConfirmacionConFactura({ reserva, factura }) {
   return (
     <section className="page-section">
       <div className="confirmacion-card fade-in">
         <div className="check-icon">✅</div>
-        <h1>¡Reserva confirmada!</h1>
+        <h1>Pago confirmado</h1>
         <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
-          Reserva creada correctamente.
+          Pago confirmado y factura generada correctamente.
         </p>
 
-        {rows.map(([etiqueta, valor]) => (
-          <div className="confirmacion-row" key={etiqueta}>
-            <span>{etiqueta}</span>
-            <span>{valor}</span>
+        {factura?.fac_numero && (
+          <div className="confirmacion-row">
+            <span>Número de factura</span>
+            <span style={{ fontFamily: 'monospace' }}>{factura.fac_numero}</span>
           </div>
-        ))}
-
-        {(reserva.detalle || []).length > 0 && (
-          <>
-            <p style={{ marginTop: '1rem', fontWeight: 600, fontSize: '0.9rem' }}>Detalle de tickets</p>
-            {reserva.detalle.map((linea, idx) => (
-              <div className="confirmacion-row" key={linea.tck_guid || idx}>
-                <span>{linea.tck_tipo_participante || linea.tipo || 'Ticket'}</span>
-                <span>{linea.cantidad} × ${Number(linea.precio_unit ?? linea.precio_unitario ?? 0).toFixed(2)}</span>
-              </div>
-            ))}
-          </>
+        )}
+        {(reserva?.rev_codigo || factura?.rev_codigo) && (
+          <div className="confirmacion-row">
+            <span>Código de reserva</span>
+            <span style={{ fontFamily: 'monospace' }}>{reserva?.rev_codigo || factura?.rev_codigo}</span>
+          </div>
+        )}
+        {factura?.nombre_receptor && (
+          <div className="confirmacion-row">
+            <span>Receptor</span>
+            <span>{factura.nombre_receptor}</span>
+          </div>
+        )}
+        {factura?.total != null && (
+          <div className="confirmacion-row">
+            <span>Total pagado</span>
+            <span>
+              ${Number(factura.total).toFixed(2)}
+              {factura.moneda ? ` ${factura.moneda}` : ''}
+            </span>
+          </div>
+        )}
+        {factura?.estado && (
+          <div className="confirmacion-row">
+            <span>Estado</span>
+            <span>{factura.estado}</span>
+          </div>
         )}
 
         <div className="inline-form" style={{ marginTop: '1.75rem' }}>
-          <Link to="/mis-reservas" className="btn">Ver mis reservas</Link>
-          <Link to="/atracciones" className="btn btn-outline">Volver al catálogo</Link>
+          <Link to="/mis-facturas" className="btn">Ver mis facturas</Link>
+          <Link to="/mis-reservas" className="btn btn-outline">Mis reservas</Link>
         </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── Pantalla de pago simulado ────────────────────────────────────────────────
+function PantallaPago({ reserva, subtotal, iva, total, onConfirmar, errorPago, procesando }) {
+  const [form, setForm] = useState({
+    nombre_receptor: '',
+    apellido_receptor: '',
+    correo_receptor: '',
+    telefono_receptor: '',
+    observacion: '',
+  })
+  const [errores, setErrores] = useState({})
+
+  const set = (campo) => (e) => {
+    setForm((p) => ({ ...p, [campo]: e.target.value }))
+    if (errores[campo]) setErrores((p) => ({ ...p, [campo]: '' }))
+  }
+
+  const validar = () => {
+    const e = {}
+    if (!form.nombre_receptor.trim()) e.nombre_receptor = 'El nombre es obligatorio'
+    if (!form.correo_receptor.trim()) e.correo_receptor = 'El correo electrónico es obligatorio'
+    else if (!esEmailValido(form.correo_receptor)) e.correo_receptor = 'Ingresa un correo electrónico válido'
+    return e
+  }
+
+  const handleConfirmar = (e) => {
+    e.preventDefault()
+    const errs = validar()
+    if (Object.keys(errs).length) { setErrores(errs); return }
+    const payload = {
+      nombre_receptor: form.nombre_receptor.trim(),
+      correo_receptor: form.correo_receptor.trim(),
+    }
+    if (form.apellido_receptor.trim()) payload.apellido_receptor = form.apellido_receptor.trim()
+    if (form.telefono_receptor.trim()) payload.telefono_receptor = form.telefono_receptor.trim()
+    if (form.observacion.trim()) payload.observacion = form.observacion.trim()
+    onConfirmar(payload)
+  }
+
+  const revSubtotal = Number(reserva?.rev_subtotal ?? subtotal ?? 0)
+  const revIva = Number(reserva?.rev_valor_iva ?? iva ?? 0)
+  const revTotal = Number(reserva?.rev_total ?? total ?? 0)
+
+  return (
+    <section className="page-section">
+      <div className="confirmacion-card fade-in">
+        <div className="check-icon">💳</div>
+        <h1>Pago simulado</h1>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
+          Confirma los datos de facturación para finalizar tu reserva.
+        </p>
+
+        {/* Resumen de la reserva */}
+        <div className="confirmacion-row">
+          <span>Código de reserva</span>
+          <span style={{ fontFamily: 'monospace' }}>{reserva?.rev_codigo || '—'}</span>
+        </div>
+        {reserva?.atraccion_nombre && (
+          <div className="confirmacion-row">
+            <span>Atracción</span>
+            <span>{reserva.atraccion_nombre}</span>
+          </div>
+        )}
+        {reserva?.hor_fecha && (
+          <div className="confirmacion-row">
+            <span>Fecha</span>
+            <span>{reserva.hor_fecha}</span>
+          </div>
+        )}
+        <div className="confirmacion-row">
+          <span>Subtotal</span>
+          <span>${revSubtotal.toFixed(2)}</span>
+        </div>
+        <div className="confirmacion-row">
+          <span>IVA 15%</span>
+          <span>${revIva.toFixed(2)}</span>
+        </div>
+        <div className="confirmacion-row" style={{ fontWeight: 700 }}>
+          <span>Total</span>
+          <span>${revTotal.toFixed(2)}</span>
+        </div>
+
+        {/* Formulario de facturación */}
+        <form onSubmit={handleConfirmar} noValidate style={{ marginTop: '1.75rem', textAlign: 'left', width: '100%' }}>
+          <div className="form-grid">
+            <div className="form-group">
+              <label htmlFor="pago-nombre">Nombre *</label>
+              <input
+                id="pago-nombre"
+                type="text"
+                value={form.nombre_receptor}
+                onChange={set('nombre_receptor')}
+                placeholder="Tu nombre"
+                className={errores.nombre_receptor ? 'input-error' : ''}
+              />
+              {errores.nombre_receptor && <span className="field-error">⚠ {errores.nombre_receptor}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="pago-apellido">Apellido</label>
+              <input
+                id="pago-apellido"
+                type="text"
+                value={form.apellido_receptor}
+                onChange={set('apellido_receptor')}
+                placeholder="Tu apellido"
+              />
+            </div>
+
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+              <label htmlFor="pago-correo">Correo electrónico *</label>
+              <input
+                id="pago-correo"
+                type="email"
+                value={form.correo_receptor}
+                onChange={set('correo_receptor')}
+                placeholder="correo@ejemplo.com"
+                className={errores.correo_receptor ? 'input-error' : ''}
+              />
+              {errores.correo_receptor && <span className="field-error">⚠ {errores.correo_receptor}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="pago-tel">Teléfono</label>
+              <input
+                id="pago-tel"
+                type="tel"
+                value={form.telefono_receptor}
+                onChange={set('telefono_receptor')}
+                placeholder="ej. 0991234567"
+              />
+            </div>
+
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+              <label htmlFor="pago-obs">Observación</label>
+              <textarea
+                id="pago-obs"
+                value={form.observacion}
+                onChange={set('observacion')}
+                rows={2}
+                placeholder="Opcional..."
+              />
+            </div>
+          </div>
+
+          <ErrorMessage mensaje={errorPago} />
+
+          <div style={{ marginTop: '1rem' }}>
+            <button type="submit" className="btn btn-full" disabled={procesando}>
+              {procesando
+                ? <><span className="spinner spinner-sm" /> Procesando pago...</>
+                : 'Confirmar pago'}
+            </button>
+          </div>
+        </form>
       </div>
     </section>
   )
@@ -128,8 +292,6 @@ function FormularioInvitado({ onConfirmar, onCancelar }) {
   const handleConfirmar = () => {
     const e = validar()
     if (Object.keys(e).length) { setErrores(e); return }
-    // Solo enviar campos opcionales si tienen valor; el backend admite null
-    // pero los `string?` se convierten mejor enviando undefined cuando no hay dato.
     const datos = {
       tipo_identificacion: form.tipo_identificacion,
       numero_identificacion: form.numero_identificacion.trim(),
@@ -243,7 +405,8 @@ function ReservaPage() {
   const location = useLocation()
   const { estaAutenticado } = useAuthContext()
 
-  const [paso, setPaso] = useState('cargando') // cargando | eleccion | invitado | formulario
+  // cargando | eleccion | invitado | formulario | pago | confirmacion
+  const [paso, setPaso] = useState('cargando')
   const [clienteInvitado, setClienteInvitado] = useState(null)
   const [horGuid, setHorGuid] = useState('')
   const [cantidades, setCantidades] = useState({})
@@ -251,8 +414,14 @@ function ReservaPage() {
   const [tickets, setTickets] = useState([])
   const [horarios, setHorarios] = useState([])
 
+  // Estado del pago
+  const [reservaLocal, setReservaLocal] = useState(null)
+  const [factura, setFactura] = useState(null)
+  const [errorPago, setErrorPago] = useState('')
+  const [procesandoPago, setProcesandoPago] = useState(false)
+
   const { detalle, cargarDetalle, cargando, error } = useAtracciones({})
-  const { crearReserva, reservaCreada, error: errorReserva, cargando: creando } = useReserva()
+  const { crearReserva, error: errorReserva, cargando: creando } = useReserva()
 
   useEffect(() => {
     cargarDetalle(guid)
@@ -307,11 +476,62 @@ function ReservaPage() {
     event.preventDefault()
     setIntentoEnvio(true)
     if (sinHorario || sinTickets) return
-    await crearReserva(guid, horGuid, lineas, 'web', clienteInvitado).catch(() => {})
+    try {
+      const reserva = await crearReserva(guid, horGuid, lineas, 'web', clienteInvitado)
+      setReservaLocal(reserva)
+      setPaso('pago')
+    } catch {
+      // errorReserva ya se gestiona en el hook y se muestra en el formulario
+    }
+  }
+
+  const handleConfirmarPago = async (datosFacturacion) => {
+    if (!reservaLocal?.rev_guid) {
+      setErrorPago('No se encontró el identificador de la reserva. Intenta nuevamente.')
+      return
+    }
+    setProcesandoPago(true)
+    setErrorPago('')
+    try {
+      const resp = await reservasApi.confirmarPago(reservaLocal.rev_guid, datosFacturacion)
+      const facturaData = resp?.data ?? resp
+      setFactura(facturaData)
+      setPaso('confirmacion')
+    } catch (err) {
+      const status = err?.response?.status
+      if (status === 409) {
+        setErrorPago('Esta reserva ya tiene un pago confirmado.')
+      } else {
+        setErrorPago(
+          err?.response?.data?.message ||
+          err?.response?.data?.details?.[0] ||
+          'No se pudo confirmar el pago. La reserva sigue activa — intenta de nuevo o ve a Mis Reservas.'
+        )
+      }
+    } finally {
+      setProcesandoPago(false)
+    }
   }
 
   if (cargando && paso === 'cargando') return <Spinner message="Cargando atracción..." />
-  if (reservaCreada) return <ConfirmacionReserva reserva={reservaCreada} />
+
+  if (paso === 'confirmacion') {
+    return <ConfirmacionConFactura reserva={reservaLocal} factura={factura} />
+  }
+
+  if (paso === 'pago') {
+    return (
+      <PantallaPago
+        reserva={reservaLocal}
+        subtotal={subtotal}
+        iva={iva}
+        total={total}
+        onConfirmar={handleConfirmarPago}
+        errorPago={errorPago}
+        procesando={procesandoPago}
+      />
+    )
+  }
 
   const sinHorarios = !cargando && detalle && horarios.length === 0
 

@@ -34,9 +34,9 @@ function FormReseniaDetalle({ atraccionGuid, onEnviada }) {
       onEnviada()
     } catch (err) {
       if (err?.response?.status === 409) {
-        setError('Ya dejaste una reseña para esta atracción')
+        setError('Ya registraste una reseña para esta atracción.')
       } else {
-        setError(err?.response?.data?.message || 'No se pudo enviar la reseña')
+        setError(err?.response?.data?.message || err?.response?.data?.details?.[0] || 'No se pudo enviar la reseña.')
       }
     } finally {
       setCargando(false)

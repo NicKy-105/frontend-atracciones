@@ -81,9 +81,9 @@ function FormResenia({ reserva, onCerrar }) {
       setEnviado(true)
     } catch (err) {
       if (err?.response?.status === 409) {
-        setError('Ya dejaste una reseña para esta reserva')
+        setError('Ya registraste una reseña para esta reserva.')
       } else {
-        setError(err?.response?.data?.message || 'No se pudo enviar la reseña')
+        setError(err?.response?.data?.message || err?.response?.data?.details?.[0] || 'No se pudo enviar la reseña.')
       }
     } finally {
       setCargando(false)
@@ -93,7 +93,7 @@ function FormResenia({ reserva, onCerrar }) {
   if (enviado) {
     return (
       <div className="success-message" style={{ margin: '0.5rem 0' }}>
-        <span>✓</span><span>¡Reseña enviada! Gracias por tu opinión.</span>
+        <span>✓</span><span>Reseña registrada correctamente. Gracias por tu opinión.</span>
         <button className="btn btn-outline btn-sm" onClick={onCerrar} style={{ marginLeft: 'auto' }}>Cerrar</button>
       </div>
     )

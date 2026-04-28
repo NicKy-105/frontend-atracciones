@@ -31,6 +31,7 @@ function FormularioHorario({ inicial, onCrear, onActualizar, onCancelar }) {
   const [tickets, setTickets] = useState([])
   const [cargandoAt, setCargandoAt] = useState(false)
   const [cargandoTck, setCargandoTck] = useState(false)
+  const [errorCargaAt, setErrorCargaAt] = useState('')
 
   const [atGuid, setAtGuid] = useState('')
   const [form, setForm] = useState({
@@ -48,9 +49,18 @@ function FormularioHorario({ inicial, onCrear, onActualizar, onCancelar }) {
   useEffect(() => {
     if (esEdicion) return
     setCargandoAt(true)
+    setErrorCargaAt('')
     adminApi.listarAtraccionesAdmin({ page: 1, limit: 200 })
       .then((data) => setAtracciones(Array.isArray(data) ? data : []))
-      .catch(() => setAtracciones([]))
+      .catch((err) => {
+        const status = err?.response?.status
+        if (status === 401 || status === 403) {
+          setErrorCargaAt('Sin permisos para cargar atracciones. Verifica que hayas iniciado sesión como administrador.')
+        } else {
+          setErrorCargaAt(err?.response?.data?.message || 'Error al cargar atracciones. Intenta recargar la página.')
+        }
+        setAtracciones([])
+      })
       .finally(() => setCargandoAt(false))
   }, [esEdicion])
 
@@ -157,6 +167,14 @@ function FormularioHorario({ inicial, onCrear, onActualizar, onCancelar }) {
               ))}
             </select>
             {errores.atGuid && <span className="field-error">⚠ {errores.atGuid}</span>}
+            {!cargandoAt && errorCargaAt && (
+              <span className="field-error">⚠ {errorCargaAt}</span>
+            )}
+            {!cargandoAt && !errorCargaAt && atracciones.length === 0 && (
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                No hay atracciones registradas. Crea una primero.
+              </span>
+            )}
           </div>
 
           <div className="form-group">

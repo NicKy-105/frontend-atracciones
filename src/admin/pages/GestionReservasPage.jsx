@@ -1,23 +1,44 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { adminApi } from '../../api/adminApi'
 import ErrorMessage from '../../components/common/ErrorMessage'
 import Spinner from '../../components/common/Spinner'
+import { emitirToast } from '../../components/common/Toast'
 import { estadoBadgeClass, estadoLabel } from '../../utils/estadoReserva'
 import { useGestionReservas } from '../hooks/useGestionReservas'
 
 function GestionReservasPage() {
   const { items, cargando, error, page, totalPages, cargar } = useGestionReservas()
+  const [cancelando, setCancelando] = useState(null)
 
   useEffect(() => {
     cargar(1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Normaliza el campo de un item de reserva cubriendo distintas claves que puede devolver el backend
   const campo = (item, ...claves) => {
     for (const k of claves) {
       if (item[k] != null && item[k] !== '') return item[k]
     }
     return '—'
+  }
+
+  const handleCancelar = async (item) => {
+    const codigo = campo(item, 'rev_codigo', 'codigo')
+    const guid = item.rev_guid ?? item.guid ?? codigo
+    if (!window.confirm(`¿Confirmas que deseas cancelar la reserva ${codigo}? Esta acción no se puede deshacer.`)) return
+    setCancelando(guid)
+    try {
+      await adminApi.cancelarReservaAdmin(guid)
+      emitirToast('Reserva cancelada correctamente.', 'success')
+      await cargar(page)
+    } catch (err) {
+      emitirToast(
+        err?.response?.data?.message || 'No se pudo cancelar la reserva.',
+        'error',
+      )
+    } finally {
+      setCancelando(null)
+    }
   }
 
   return (
@@ -40,12 +61,13 @@ function GestionReservasPage() {
               <th>Horario</th>
               <th>Estado</th>
               <th>Total</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 && !cargando && (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+                <td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
                   No hay reservas registradas.
                 </td>
               </tr>
@@ -60,6 +82,7 @@ function GestionReservasPage() {
               const estado = campo(item, 'rev_estado', 'estado')
               const total = Number(item.rev_total ?? item.total ?? 0).toFixed(2)
               const guid = item.rev_guid ?? item.guid ?? codigo
+              const esCancelable = ['P', 'A', 'PENDIENTE', 'ACTIVA', 'CONFIRMADA'].includes(estado?.toUpperCase?.() ?? estado)
 
               return (
                 <tr key={guid}>
@@ -80,6 +103,18 @@ function GestionReservasPage() {
                     </span>
                   </td>
                   <td><strong>${total}</strong></td>
+                  <td>
+                    {esCancelable && (
+                      <button
+                        className="btn btn-outline btn-sm"
+                        style={{ color: 'var(--danger, #e55)' }}
+                        disabled={cancelando === guid}
+                        onClick={() => handleCancelar(item)}
+                      >
+                        {cancelando === guid ? 'Cancelando...' : 'Cancelar'}
+                      </button>
+                    )}
+                  </td>
                 </tr>
               )
             })}

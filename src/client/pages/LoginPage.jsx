@@ -18,7 +18,8 @@ function LoginPage() {
 
   const validar = () => {
     const e = {}
-    if (!form.login.trim()) e.login = 'El usuario es obligatorio'
+    if (!form.login.trim()) e.login = 'El correo electrónico es obligatorio'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.login)) e.login = 'Debes ingresar un correo electrónico válido'
     if (!form.password) e.password = 'La contraseña es obligatoria'
     return e
   }
@@ -49,10 +50,10 @@ function LoginPage() {
 
         <form onSubmit={handleSubmit} className="form-grid" noValidate>
           <div className="form-group">
-            <label htmlFor="login">Usuario o correo</label>
+            <label htmlFor="login">Correo electrónico</label>
             <input
               id="login"
-              type="text"
+              type="email"
               value={form.login}
               onChange={set('login')}
               className={errores.login ? 'input-error' : ''}

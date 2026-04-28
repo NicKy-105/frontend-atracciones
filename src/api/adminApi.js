@@ -31,6 +31,25 @@ export const adminApi = {
       pagination: response.data?.pagination || null,
     }
   },
+  listarTodasAtraccionesAdmin: async () => {
+    const LIMIT = 50
+    let page = 1
+    let todas = []
+    let totalPages = 1
+
+    do {
+      const response = await apiClient.get('/admin/atracciones', {
+        params: { page, limit: LIMIT },
+      })
+      const data = response.data?.data || []
+      const pagination = response.data?.pagination || {}
+      todas = [...todas, ...data]
+      totalPages = pagination.total_pages ?? pagination.totalPages ?? 1
+      page++
+    } while (page <= totalPages)
+
+    return todas
+  },
   obtenerAtraccionAdmin: async (guid) => {
     const response = await apiClient.get(`/admin/atracciones/${guid}`)
     return response.data?.data || response.data

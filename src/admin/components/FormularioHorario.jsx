@@ -50,7 +50,7 @@ function FormularioHorario({ inicial, onCrear, onActualizar, onCancelar }) {
     if (esEdicion) return
     setCargandoAt(true)
     setErrorCargaAt('')
-    adminApi.listarAtraccionesAdmin({ page: 1, limit: 200 })
+    adminApi.listarTodasAtraccionesAdmin()
       .then((data) => setAtracciones(Array.isArray(data) ? data : []))
       .catch((err) => {
         const status = err?.response?.status

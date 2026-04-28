@@ -32,7 +32,7 @@ function FormularioTicket({ inicial, onGuardar, onCancelar }) {
     setCargando(true)
     setErrorCarga('')
     adminApi
-      .listarAtraccionesAdmin({ page: 1, limit: 200 })
+      .listarTodasAtraccionesAdmin()
       .then((data) => setAtracciones(Array.isArray(data) ? data : []))
       .catch((err) => {
         const status = err?.response?.status

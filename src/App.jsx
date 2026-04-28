@@ -1,7 +1,11 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import DashboardPage from './admin/pages/DashboardPage'
 import GestionAtraccionesPage from './admin/pages/GestionAtraccionesPage'
+import GestionCategoriasPage from './admin/pages/GestionCategoriasPage'
+import GestionDestinosPage from './admin/pages/GestionDestinosPage'
 import GestionHorariosPage from './admin/pages/GestionHorariosPage'
+import GestionIdiomasPage from './admin/pages/GestionIdiomasPage'
+import GestionIncluyePage from './admin/pages/GestionIncluyePage'
 import GestionReservasPage from './admin/pages/GestionReservasPage'
 import GestionTicketsPage from './admin/pages/GestionTicketsPage'
 import GestionUsuariosPage from './admin/pages/GestionUsuariosPage'
@@ -25,14 +29,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/atracciones" element={<CatalogoPage />} />
         <Route path="/atracciones/:guid" element={<DetallePage />} />
-        <Route
-          path="/reservar/:guid"
-          element={
-            <RutaProtegida>
-              <ReservaPage />
-            </RutaProtegida>
-          }
-        />
+        <Route path="/reservar/:guid" element={<ReservaPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/registro" element={<RegistroPage />} />
         <Route
@@ -104,6 +101,38 @@ function App() {
           element={
             <RutaAdmin>
               <GestionUsuariosPage />
+            </RutaAdmin>
+          }
+        />
+        <Route
+          path="/admin/destinos"
+          element={
+            <RutaAdmin>
+              <GestionDestinosPage />
+            </RutaAdmin>
+          }
+        />
+        <Route
+          path="/admin/categorias"
+          element={
+            <RutaAdmin>
+              <GestionCategoriasPage />
+            </RutaAdmin>
+          }
+        />
+        <Route
+          path="/admin/idiomas"
+          element={
+            <RutaAdmin>
+              <GestionIdiomasPage />
+            </RutaAdmin>
+          }
+        />
+        <Route
+          path="/admin/incluye"
+          element={
+            <RutaAdmin>
+              <GestionIncluyePage />
             </RutaAdmin>
           }
         />

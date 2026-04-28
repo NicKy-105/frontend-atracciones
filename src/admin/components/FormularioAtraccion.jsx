@@ -142,20 +142,19 @@ function FormularioAtraccion({ inicial, onGuardar, onCancelar }) {
 
     setGuardando(true)
     const payload = {
-      desGuid: form.desGuid,
+      des_guid: form.desGuid,
       nombre: form.nombre.trim(),
       descripcion: form.descripcion.trim() || null,
       direccion: form.direccion.trim() || null,
-      duracionMinutos: form.duracionMinutos ? Number(form.duracionMinutos) : null,
-      puntoEncuentro: form.puntoEncuentro.trim() || null,
-      precioReferencia: form.precioReferencia ? Number(form.precioReferencia) : null,
-      incluyeAcompaniante: Boolean(form.incluyeAcompaniante),
-      incluyeTransporte: Boolean(form.incluyeTransporte),
-      categoriaGuids: form.categoriaGuids,
-      idiomaGuids: form.idiomaGuids,
-      imagenGuids: [],
-      incluyeGuids: form.incluyeGuids,
-      imagenUrlReferencia: form.imagenUrlReferencia.trim() || undefined,
+      duracion_minutos: form.duracionMinutos ? Number(form.duracionMinutos) : null,
+      punto_encuentro: form.puntoEncuentro.trim() || null,
+      precio_referencia: form.precioReferencia ? Number(form.precioReferencia) : null,
+      incluye_acompaniante: Boolean(form.incluyeAcompaniante),
+      incluye_transporte: Boolean(form.incluyeTransporte),
+      categoria_guids: form.categoriaGuids,
+      idioma_guids: form.idiomaGuids,
+      imagen_guids: [],
+      incluye_guids: form.incluyeGuids,
     }
 
     try {

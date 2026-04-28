@@ -21,7 +21,7 @@ function GestionAtraccionesPage() {
   }
 
   const onGuardar = async (payload) => {
-    await guardar(payload, editando?.guid)
+    await guardar(payload, editando?.at_guid ?? editando?.guid)
     setMostrarFormulario(false)
   }
 

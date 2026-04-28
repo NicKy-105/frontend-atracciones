@@ -1,23 +1,25 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import * as reservasApi from '../../api/reservasApi'
 
 export function useReserva() {
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
   const [reservaCreada, setReservaCreada] = useState(null)
-  const navigate = useNavigate()
 
-  const crearReserva = async (horGuid, lineas, origenCanal = 'web') => {
+  const crearReserva = async (atGuid, horGuid, lineas, origenCanal = 'web', clienteInvitado = null) => {
     setCargando(true)
     setError('')
     const body = {
+      at_guid: atGuid,
       hor_guid: horGuid,
       lineas: lineas.map((item) => ({
         tck_guid: item.tck_guid,
         cantidad: Number(item.cantidad),
       })),
       origen_canal: origenCanal,
+    }
+    if (clienteInvitado) {
+      body.cliente_invitado = clienteInvitado
     }
 
     try {
@@ -27,11 +29,13 @@ export function useReserva() {
       return reserva
     } catch (err) {
       if (err?.response?.status === 409) {
-        setError('Cupos insuficientes')
-      } else if (err?.response?.status === 401) {
-        navigate('/login')
+        setError('No hay cupos suficientes para el horario seleccionado.')
       } else {
-        setError(err?.response?.data?.message || 'No se pudo crear la reserva')
+        setError(
+          err?.response?.data?.message ||
+          err?.response?.data?.errors?.[0] ||
+          'No se pudo crear la reserva. Verifica los datos ingresados.',
+        )
       }
       throw err
     } finally {

@@ -206,16 +206,14 @@ function DetallePage() {
                 </>
               )}
 
-              {estaAutenticado && (
-                <button
-                  type="button"
-                  className="btn"
-                  style={{ marginTop: '1rem' }}
-                  onClick={() => navigate(`/reservar/${guid}`)}
-                >
-                  Reservar
-                </button>
-              )}
+              <button
+                type="button"
+                className="btn"
+                style={{ marginTop: '1rem' }}
+                onClick={() => navigate(`/reservar/${guid}`)}
+              >
+                Reservar
+              </button>
             </div>
           </div>
         </>

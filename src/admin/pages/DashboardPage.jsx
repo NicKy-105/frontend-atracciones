@@ -31,6 +31,30 @@ const SECCIONES = [
     titulo: 'Usuarios',
     descripcion: 'Gestiona clientes y cuentas',
   },
+  {
+    to: '/admin/destinos',
+    icon: '📍',
+    titulo: 'Destinos',
+    descripcion: 'Administra los destinos turísticos',
+  },
+  {
+    to: '/admin/categorias',
+    icon: '🏷️',
+    titulo: 'Categorías',
+    descripcion: 'Categorías de atracciones',
+  },
+  {
+    to: '/admin/idiomas',
+    icon: '🌐',
+    titulo: 'Idiomas',
+    descripcion: 'Idiomas disponibles',
+  },
+  {
+    to: '/admin/incluye',
+    icon: '✅',
+    titulo: 'Elementos incluidos',
+    descripcion: 'Servicios y recursos incluidos',
+  },
 ]
 
 function DashboardPage() {

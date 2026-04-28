@@ -36,19 +36,61 @@ export const adminApi = {
     const response = await apiClient.put(`/admin/destinos/${guid}`, payload)
     return response.data
   },
+  deleteDestino: async (guid) => {
+    const response = await apiClient.delete(`/admin/destinos/${guid}`)
+    return response.data
+  },
 
   // ─── Catálogos auxiliares ──────────────────────────────────────────────────
   listarCategorias: async () => {
     const response = await apiClient.get('/admin/categorias')
     return response.data?.data || []
   },
+  createCategoria: async (payload) => {
+    const response = await apiClient.post('/admin/categorias', payload)
+    return response.data
+  },
+  updateCategoria: async (guid, payload) => {
+    const response = await apiClient.put(`/admin/categorias/${guid}`, payload)
+    return response.data
+  },
+  deleteCategoria: async (guid) => {
+    const response = await apiClient.delete(`/admin/categorias/${guid}`)
+    return response.data
+  },
+
   listarIdiomas: async () => {
     const response = await apiClient.get('/admin/idiomas')
     return response.data?.data || []
   },
+  createIdioma: async (payload) => {
+    const response = await apiClient.post('/admin/idiomas', payload)
+    return response.data
+  },
+  updateIdioma: async (guid, payload) => {
+    const response = await apiClient.put(`/admin/idiomas/${guid}`, payload)
+    return response.data
+  },
+  deleteIdioma: async (guid) => {
+    const response = await apiClient.delete(`/admin/idiomas/${guid}`)
+    return response.data
+  },
+
   listarIncluye: async () => {
     const response = await apiClient.get('/admin/incluye')
     return response.data?.data || []
+  },
+  createIncluye: async (payload) => {
+    const response = await apiClient.post('/admin/incluye', payload)
+    return response.data
+  },
+  updateIncluye: async (guid, payload) => {
+    const response = await apiClient.put(`/admin/incluye/${guid}`, payload)
+    return response.data
+  },
+  deleteIncluye: async (guid) => {
+    const response = await apiClient.delete(`/admin/incluye/${guid}`)
+    return response.data
   },
 
   // ─── Tickets ──────────────────────────────────────────────────────────────
@@ -91,6 +133,10 @@ export const adminApi = {
   },
   actualizarEstadoReserva: async (guid, estado) => {
     const response = await apiClient.put(`/admin/reservas/${guid}/estado`, { estado })
+    return response.data
+  },
+  cancelarReservaAdmin: async (guid) => {
+    const response = await apiClient.post(`/admin/reservas/${guid}/cancelar`, {})
     return response.data
   },
 

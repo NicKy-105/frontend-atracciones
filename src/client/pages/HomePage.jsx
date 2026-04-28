@@ -57,7 +57,10 @@ function HomePage() {
         {!cargando && (
           <div className="atracciones-grid">
             {destacadas.map((atraccion) => (
-              <TarjetaAtraccion key={atraccion.guid} atraccion={atraccion} />
+              <TarjetaAtraccion
+                key={atraccion.at_guid ?? atraccion.guid ?? atraccion.id}
+                atraccion={atraccion}
+              />
             ))}
           </div>
         )}

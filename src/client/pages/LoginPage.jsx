@@ -1,11 +1,17 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import ErrorMessage from '../../components/common/ErrorMessage'
+import { emitirToast } from '../../components/common/Toast'
 import { useAuthContext } from '../../context/AuthContext'
+import { esEmailValido } from '../../utils/validaciones'
 import { useAuth } from '../hooks/useAuth'
 
+/**
+ * El backend espera `{ login, password }` y `login` debe ser el correo
+ * registrado. El input se llama "correo" para reflejar la realidad.
+ */
 function LoginPage() {
-  const [form, setForm] = useState({ login: '', password: '' })
+  const [form, setForm] = useState({ correo: '', password: '' })
   const [errores, setErrores] = useState({})
   const { estaAutenticado } = useAuthContext()
   const { cargando, error, iniciarSesion } = useAuth()
@@ -18,8 +24,8 @@ function LoginPage() {
 
   const validar = () => {
     const e = {}
-    if (!form.login.trim()) e.login = 'El correo electrónico es obligatorio'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.login)) e.login = 'Debes ingresar un correo electrónico válido'
+    if (!form.correo.trim()) e.correo = 'El correo electrónico es obligatorio'
+    else if (!esEmailValido(form.correo)) e.correo = 'Ingresa un correo electrónico válido'
     if (!form.password) e.password = 'La contraseña es obligatoria'
     return e
   }
@@ -30,10 +36,13 @@ function LoginPage() {
     if (Object.keys(e).length) { setErrores(e); return }
     setErrores({})
     try {
-      await iniciarSesion(form.login, form.password)
+      await iniciarSesion(form.correo.trim(), form.password)
+      emitirToast('Sesión iniciada correctamente.', 'success')
       navigate(destino, { replace: true })
     } catch {
-      /* error guardado en el hook */
+      // El error queda guardado por el hook; el toast lo dispara el interceptor
+      // global solo en 5xx. Para credenciales inválidas el mensaje se renderiza
+      // en línea con ErrorMessage.
     }
   }
 
@@ -50,17 +59,17 @@ function LoginPage() {
 
         <form onSubmit={handleSubmit} className="form-grid" noValidate>
           <div className="form-group">
-            <label htmlFor="login">Correo electrónico</label>
+            <label htmlFor="correo">Correo electrónico</label>
             <input
-              id="login"
+              id="correo"
               type="email"
-              value={form.login}
-              onChange={set('login')}
-              className={errores.login ? 'input-error' : ''}
+              value={form.correo}
+              onChange={set('correo')}
+              className={errores.correo ? 'input-error' : ''}
               autoComplete="username"
               placeholder="correo@ejemplo.com"
             />
-            {errores.login && <span className="field-error">⚠ {errores.login}</span>}
+            {errores.correo && <span className="field-error">⚠ {errores.correo}</span>}
           </div>
 
           <div className="form-group">

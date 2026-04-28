@@ -1,26 +1,52 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { adminApi } from '../../api/adminApi'
+import { emitirToast } from '../../components/common/Toast'
 
 export function useGestionHorarios() {
+  const [items, setItems] = useState([])
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
 
-  // El backend no expone GET /admin/horarios; los horarios se gestionan
-  // creando entradas por ticket mediante POST /admin/tickets/horarios
-  const guardar = async (payload) => {
+  const cargar = async () => {
     setCargando(true)
     setError('')
     try {
-      await adminApi.createHorario(payload)
+      const data = await adminApi.listarHorariosAdmin()
+      setItems(Array.isArray(data) ? data : [])
     } catch (err) {
-      const mensaje =
-        err?.response?.data?.message || 'No se pudo guardar el horario'
-      setError(mensaje)
-      throw err
+      setError(err?.response?.data?.message || 'No se pudieron cargar los horarios.')
     } finally {
       setCargando(false)
     }
   }
 
-  return { cargando, error, guardar }
+  useEffect(() => { cargar() }, [])
+
+  const crear = async (payload) => {
+    await adminApi.createHorario(payload)
+    emitirToast('Horario creado correctamente.', 'success')
+    await cargar()
+  }
+
+  const actualizar = async (guid, payload) => {
+    await adminApi.actualizarHorario(guid, payload)
+    emitirToast('Horario actualizado correctamente.', 'success')
+    await cargar()
+  }
+
+  const eliminar = async (guid) => {
+    try {
+      await adminApi.eliminarHorario(guid)
+      emitirToast('Horario eliminado correctamente.', 'success')
+      await cargar()
+    } catch (err) {
+      emitirToast(
+        err?.response?.data?.message || 'No se pudo eliminar el horario.',
+        'error',
+      )
+      throw err
+    }
+  }
+
+  return { items, cargando, error, crear, actualizar, eliminar, recargar: cargar }
 }

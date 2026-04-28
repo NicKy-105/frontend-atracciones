@@ -51,7 +51,10 @@ function CatalogoPage() {
 
       <div className="atracciones-grid">
         {atracciones.map((atraccion) => (
-          <TarjetaAtraccion key={atraccion.guid || atraccion.id} atraccion={atraccion} />
+          <TarjetaAtraccion
+            key={atraccion.at_guid ?? atraccion.guid ?? atraccion.id}
+            atraccion={atraccion}
+          />
         ))}
       </div>
       {!cargando && !error && atracciones.length === 0 && (

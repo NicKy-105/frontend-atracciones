@@ -1,47 +1,68 @@
 import { useState } from 'react'
 import ErrorMessage from '../../components/common/ErrorMessage'
 import Spinner from '../../components/common/Spinner'
+import { emitirToast } from '../../components/common/Toast'
 import FormularioHorario from '../components/FormularioHorario'
+import TablaHorarios from '../components/TablaHorarios'
 import { useGestionHorarios } from '../hooks/useGestionHorarios'
 
 function GestionHorariosPage() {
-  const { cargando, error, guardar } = useGestionHorarios()
+  const { items, cargando, error, crear, actualizar, eliminar } = useGestionHorarios()
+  const [editando, setEditando] = useState(null)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
-  const [exito, setExito] = useState('')
 
-  const onGuardar = async (payload) => {
-    await guardar(payload)
-    setMostrarFormulario(false)
-    setExito('Horario creado correctamente')
-    setTimeout(() => setExito(''), 4000)
+  const handleCrear = async (payload) => {
+    try {
+      await crear(payload)
+      setMostrarFormulario(false)
+      setEditando(null)
+    } catch (err) {
+      emitirToast(
+        err?.response?.data?.message || 'No se pudo crear el horario.',
+        'error',
+      )
+    }
+  }
+
+  const handleActualizar = async (guid, payload) => {
+    try {
+      await actualizar(guid, payload)
+      setMostrarFormulario(false)
+      setEditando(null)
+    } catch (err) {
+      emitirToast(
+        err?.response?.data?.message || 'No se pudo actualizar el horario.',
+        'error',
+      )
+    }
   }
 
   return (
     <section className="page-section">
-      <h1>Gestión de Horarios</h1>
-      <p className="text-muted">
-        Los horarios se asocian a un ticket específico. Ingresa el GUID del ticket
-        al que pertenece este horario.
-      </p>
-
-      <button className="btn" type="button" onClick={() => setMostrarFormulario(true)}>
-        Crear nuevo horario
-      </button>
+      <div className="admin-page-header">
+        <h1>Gestión de Horarios</h1>
+        <button className="btn" type="button" onClick={() => { setEditando(null); setMostrarFormulario(true) }}>
+          Crear nuevo horario
+        </button>
+      </div>
 
       {mostrarFormulario && (
         <FormularioHorario
-          onGuardar={onGuardar}
-          onCancelar={() => setMostrarFormulario(false)}
+          inicial={editando}
+          onCrear={handleCrear}
+          onActualizar={handleActualizar}
+          onCancelar={() => { setMostrarFormulario(false); setEditando(null) }}
         />
       )}
 
-      {cargando && <Spinner message="Guardando..." />}
+      {cargando && <Spinner message="Cargando horarios..." />}
       <ErrorMessage mensaje={error} />
-      {exito && <p className="success-message">{exito}</p>}
 
-      <p className="text-muted" style={{ marginTop: '2rem' }}>
-        El listado de horarios se consulta desde el detalle de cada atracción o ticket.
-      </p>
+      <TablaHorarios
+        items={items}
+        onEditar={(item) => { setEditando(item); setMostrarFormulario(true) }}
+        onEliminar={eliminar}
+      />
     </section>
   )
 }

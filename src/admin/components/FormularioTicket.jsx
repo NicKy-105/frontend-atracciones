@@ -4,14 +4,23 @@ import Spinner from '../../components/common/Spinner'
 
 const TIPOS_PARTICIPANTE = ['Adulto', 'Niño', 'Grupo', 'Estudiante', 'Senior']
 
+/**
+ * Crea/edita tickets contra:
+ *   - POST /admin/tickets   body: CrearTicketRequest
+ *   - PUT  /admin/tickets/{guid} body: ActualizarTicketRequest
+ *
+ * Nombres de campos del contrato (snake_case):
+ *   at_guid, titulo, tipo_participante, precio, capacidad_maxima, cupos_disponibles,
+ *   estado (solo en update; 'A'|'I').
+ */
 function FormularioTicket({ inicial, onGuardar, onCancelar }) {
   const [form, setForm] = useState({
-    atGuid: '',
+    at_guid: '',
     titulo: '',
     precio: '',
-    tipoParticipante: 'Adulto',
-    capacidadMaxima: '',
-    cuposDisponibles: '',
+    tipo_participante: 'Adulto',
+    capacidad_maxima: '',
+    cupos_disponibles: '',
   })
   const [errores, setErrores] = useState({})
   const [atracciones, setAtracciones] = useState([])
@@ -22,11 +31,7 @@ function FormularioTicket({ inicial, onGuardar, onCancelar }) {
     setCargando(true)
     adminApi
       .listarAtraccionesAdmin({ page: 1, limit: 200 })
-      .then((data) => {
-        // El campo GUID puede ser at_guid, guid, atGuid según la versión del backend
-        const items = Array.isArray(data) ? data : []
-        setAtracciones(items)
-      })
+      .then((data) => setAtracciones(Array.isArray(data) ? data : []))
       .catch(() => setAtracciones([]))
       .finally(() => setCargando(false))
   }, [])
@@ -34,12 +39,12 @@ function FormularioTicket({ inicial, onGuardar, onCancelar }) {
   useEffect(() => {
     if (!inicial) return
     setForm({
-      atGuid: inicial.at_guid ?? inicial.atGuid ?? inicial.guid ?? '',
-      titulo: inicial.titulo ?? inicial.nombre ?? '',
+      at_guid: inicial.at_guid ?? '',
+      titulo: inicial.titulo ?? '',
       precio: inicial.precio ?? '',
-      tipoParticipante: inicial.tipo_participante ?? inicial.tipoParticipante ?? 'Adulto',
-      capacidadMaxima: inicial.capacidad_maxima ?? inicial.capacidadMaxima ?? '',
-      cuposDisponibles: inicial.cupos_disponibles ?? inicial.cuposDisponibles ?? '',
+      tipo_participante: inicial.tipo_participante ?? 'Adulto',
+      capacidad_maxima: inicial.capacidad_maxima ?? '',
+      cupos_disponibles: inicial.cupos_disponibles ?? '',
     })
   }, [inicial])
 
@@ -50,11 +55,11 @@ function FormularioTicket({ inicial, onGuardar, onCancelar }) {
 
   const validar = () => {
     const e = {}
-    if (!form.atGuid) e.atGuid = 'Selecciona una atracción'
+    if (!form.at_guid) e.at_guid = 'Selecciona una atracción'
     if (!form.titulo.trim()) e.titulo = 'El título es obligatorio'
-    if (!form.precio || Number(form.precio) < 0) e.precio = 'Ingresa un precio válido (≥ 0)'
-    if (!form.capacidadMaxima || Number(form.capacidadMaxima) < 1) e.capacidadMaxima = 'Capacidad mínima: 1'
-    if (form.cuposDisponibles === '' || Number(form.cuposDisponibles) < 0) e.cuposDisponibles = 'Cupos debe ser ≥ 0'
+    if (form.precio === '' || Number(form.precio) < 0) e.precio = 'Ingresa un precio válido (≥ 0)'
+    if (!form.capacidad_maxima || Number(form.capacidad_maxima) < 1) e.capacidad_maxima = 'Capacidad mínima: 1'
+    if (form.cupos_disponibles === '' || Number(form.cupos_disponibles) < 0) e.cupos_disponibles = 'Cupos debe ser ≥ 0'
     return e
   }
 
@@ -64,25 +69,20 @@ function FormularioTicket({ inicial, onGuardar, onCancelar }) {
     if (Object.keys(e).length) { setErrores(e); return }
     setGuardando(true)
     try {
-      await onGuardar({
-        atGuid: form.atGuid,
+      const payload = {
         titulo: form.titulo.trim(),
         precio: Number(form.precio),
-        tipoParticipante: form.tipoParticipante,
-        capacidadMaxima: Number(form.capacidadMaxima),
-        cuposDisponibles: Number(form.cuposDisponibles),
-      })
+        tipo_participante: form.tipo_participante,
+        capacidad_maxima: Number(form.capacidad_maxima),
+        cupos_disponibles: Number(form.cupos_disponibles),
+      }
+      // En creación se exige at_guid; en edición no se reasigna la atracción.
+      if (!inicial) payload.at_guid = form.at_guid
+      await onGuardar(payload)
     } finally {
       setGuardando(false)
     }
   }
-
-  /** Normaliza el GUID de un item de atracción (puede venir en distintos campos) */
-  const getAtGuid = (item) =>
-    item.at_guid ?? item.atGuid ?? item.guid ?? item.id ?? ''
-
-  const getNombre = (item) =>
-    item.nombre ?? item.name ?? item.titulo ?? ''
 
   return (
     <form className="admin-form" onSubmit={submit} noValidate>
@@ -95,22 +95,18 @@ function FormularioTicket({ inicial, onGuardar, onCancelar }) {
         ) : (
           <select
             id="ft-atraccion"
-            value={form.atGuid}
-            onChange={set('atGuid')}
-            className={errores.atGuid ? 'input-error' : ''}
+            value={form.at_guid}
+            onChange={set('at_guid')}
+            disabled={Boolean(inicial)}
+            className={errores.at_guid ? 'input-error' : ''}
           >
             <option value="">— Selecciona una atracción —</option>
-            {atracciones.map((item) => {
-              const guid = getAtGuid(item)
-              return (
-                <option key={guid} value={guid}>
-                  {getNombre(item)}
-                </option>
-              )
-            })}
+            {atracciones.map((item) => (
+              <option key={item.at_guid} value={item.at_guid}>{item.nombre}</option>
+            ))}
           </select>
         )}
-        {errores.atGuid && <span className="field-error">⚠ {errores.atGuid}</span>}
+        {errores.at_guid && <span className="field-error">⚠ {errores.at_guid}</span>}
         {!cargando && atracciones.length === 0 && (
           <span className="field-error" style={{ color: 'var(--text-muted)' }}>
             No se encontraron atracciones. Crea una primero.
@@ -127,6 +123,7 @@ function FormularioTicket({ inicial, onGuardar, onCancelar }) {
           value={form.titulo}
           onChange={set('titulo')}
           placeholder="ej. Adulto — entrada general"
+          maxLength={200}
           className={errores.titulo ? 'input-error' : ''}
         />
         {errores.titulo && <span className="field-error">⚠ {errores.titulo}</span>}
@@ -135,7 +132,7 @@ function FormularioTicket({ inicial, onGuardar, onCancelar }) {
       {/* Tipo de participante */}
       <div className="form-group">
         <label htmlFor="ft-tipo">Tipo de participante</label>
-        <select id="ft-tipo" value={form.tipoParticipante} onChange={set('tipoParticipante')}>
+        <select id="ft-tipo" value={form.tipo_participante} onChange={set('tipo_participante')}>
           {TIPOS_PARTICIPANTE.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
       </div>
@@ -163,12 +160,12 @@ function FormularioTicket({ inicial, onGuardar, onCancelar }) {
           id="ft-cap"
           type="number"
           min="1"
-          value={form.capacidadMaxima}
-          onChange={set('capacidadMaxima')}
+          value={form.capacidad_maxima}
+          onChange={set('capacidad_maxima')}
           placeholder="ej. 20"
-          className={errores.capacidadMaxima ? 'input-error' : ''}
+          className={errores.capacidad_maxima ? 'input-error' : ''}
         />
-        {errores.capacidadMaxima && <span className="field-error">⚠ {errores.capacidadMaxima}</span>}
+        {errores.capacidad_maxima && <span className="field-error">⚠ {errores.capacidad_maxima}</span>}
       </div>
 
       {/* Cupos disponibles */}
@@ -178,12 +175,12 @@ function FormularioTicket({ inicial, onGuardar, onCancelar }) {
           id="ft-cupos"
           type="number"
           min="0"
-          value={form.cuposDisponibles}
-          onChange={set('cuposDisponibles')}
+          value={form.cupos_disponibles}
+          onChange={set('cupos_disponibles')}
           placeholder="ej. 15"
-          className={errores.cuposDisponibles ? 'input-error' : ''}
+          className={errores.cupos_disponibles ? 'input-error' : ''}
         />
-        {errores.cuposDisponibles && <span className="field-error">⚠ {errores.cuposDisponibles}</span>}
+        {errores.cupos_disponibles && <span className="field-error">⚠ {errores.cupos_disponibles}</span>}
       </div>
 
       <div className="inline-form">

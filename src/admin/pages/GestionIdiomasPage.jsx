@@ -1,18 +1,29 @@
 import { useEffect, useState } from 'react'
 import { adminApi } from '../../api/adminApi'
 import ErrorMessage from '../../components/common/ErrorMessage'
+import ModalConfirmacion from '../../components/common/ModalConfirmacion'
 import Spinner from '../../components/common/Spinner'
 import { emitirToast } from '../../components/common/Toast'
 
+/**
+ * Catálogo de idiomas (`/admin/idiomas`).
+ *
+ * Contrato (snake_case):
+ *  - IdiomaResponse: { id_guid, descripcion, estado }
+ *  - CrearIdiomaRequest:    { descripcion }
+ *  - ActualizarIdiomaRequest: { descripcion?, estado? }
+ */
 function GestionIdiomasPage() {
   const [items, setItems] = useState([])
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
-  const [nombre, setNombre] = useState('')
+  const [descripcion, setDescripcion] = useState('')
   const [editando, setEditando] = useState(null)
   const [guardando, setGuardando] = useState(false)
-  const [errorNombre, setErrorNombre] = useState('')
+  const [errorCampo, setErrorCampo] = useState('')
   const [mostrarForm, setMostrarForm] = useState(false)
+  const [confirmando, setConfirmando] = useState(null)
+  const [eliminando, setEliminando] = useState(false)
 
   const cargar = async () => {
     setCargando(true)
@@ -31,49 +42,57 @@ function GestionIdiomasPage() {
 
   const handleNuevo = () => {
     setEditando(null)
-    setNombre('')
-    setErrorNombre('')
+    setDescripcion('')
+    setErrorCampo('')
     setMostrarForm(true)
   }
 
   const handleEditar = (item) => {
     setEditando(item)
-    setNombre(item.nombre ?? '')
-    setErrorNombre('')
+    setDescripcion(item.descripcion ?? '')
+    setErrorCampo('')
     setMostrarForm(true)
   }
 
   const handleGuardar = async (e) => {
     e.preventDefault()
-    if (!nombre.trim()) { setErrorNombre('El nombre es obligatorio'); return }
+    if (!descripcion.trim()) { setErrorCampo('La descripción es obligatoria'); return }
     setGuardando(true)
     try {
-      const payload = { nombre: nombre.trim() }
-      const guid = editando?.idi_guid ?? editando?.id_guid ?? editando?.guid
       if (editando) {
-        await adminApi.updateIdioma(guid, payload)
-        emitirToast('Idioma actualizado correctamente.', 'success')
+        await adminApi.updateIdioma(editando.id_guid, { descripcion: descripcion.trim() })
+        emitirToast('Cambios guardados correctamente.', 'success')
       } else {
-        await adminApi.createIdioma(payload)
-        emitirToast('Idioma creado correctamente.', 'success')
+        await adminApi.createIdioma({ descripcion: descripcion.trim() })
+        emitirToast('Registro creado correctamente.', 'success')
       }
       setMostrarForm(false)
       await cargar()
     } catch (err) {
-      emitirToast(err?.response?.data?.message || 'No se pudo guardar el idioma.', 'error')
+      emitirToast(
+        err?.response?.data?.message || 'No se pudo guardar el idioma.',
+        'error',
+      )
     } finally {
       setGuardando(false)
     }
   }
 
-  const handleEliminar = async (item) => {
-    if (!window.confirm(`¿Eliminar el idioma "${item.nombre}"?`)) return
+  const ejecutarEliminar = async () => {
+    if (!confirmando) return
+    setEliminando(true)
     try {
-      await adminApi.deleteIdioma(item.idi_guid ?? item.id_guid ?? item.guid)
-      emitirToast('Idioma eliminado.', 'success')
+      await adminApi.deleteIdioma(confirmando.id_guid)
+      emitirToast('Registro eliminado correctamente.', 'success')
+      setConfirmando(null)
       await cargar()
     } catch (err) {
-      emitirToast(err?.response?.data?.message || 'No se pudo eliminar el idioma.', 'error')
+      emitirToast(
+        err?.response?.data?.message || 'No se pudo eliminar el idioma.',
+        'error',
+      )
+    } finally {
+      setEliminando(false)
     }
   }
 
@@ -88,12 +107,17 @@ function GestionIdiomasPage() {
         <form className="admin-form" onSubmit={handleGuardar} noValidate style={{ marginBottom: '1.5rem' }}>
           <h3 style={{ marginBottom: '1rem' }}>{editando ? 'Editar idioma' : 'Nuevo idioma'}</h3>
           <div className="form-group">
-            <label htmlFor="idi-nombre">Nombre *</label>
-            <input id="idi-nombre" type="text" value={nombre}
-              onChange={(e) => { setNombre(e.target.value); setErrorNombre('') }}
+            <label htmlFor="idi-desc">Descripción *</label>
+            <input
+              id="idi-desc"
+              type="text"
+              value={descripcion}
+              onChange={(e) => { setDescripcion(e.target.value); setErrorCampo('') }}
               placeholder="ej. Español"
-              className={errorNombre ? 'input-error' : ''} />
-            {errorNombre && <span className="field-error">⚠ {errorNombre}</span>}
+              maxLength={50}
+              className={errorCampo ? 'input-error' : ''}
+            />
+            {errorCampo && <span className="field-error">⚠ {errorCampo}</span>}
           </div>
           <div className="inline-form" style={{ marginTop: '0.75rem' }}>
             <button className="btn" type="submit" disabled={guardando}>
@@ -112,26 +136,49 @@ function GestionIdiomasPage() {
       <div className="table-wrap">
         <table className="admin-table">
           <thead>
-            <tr><th>Nombre</th><th>Acciones</th></tr>
+            <tr><th>Descripción</th><th>Estado</th><th>Acciones</th></tr>
           </thead>
           <tbody>
             {items.length === 0 && !cargando && (
-              <tr><td colSpan={2} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
-                No hay idiomas registrados.
-              </td></tr>
+              <tr>
+                <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+                  No hay idiomas registrados.
+                </td>
+              </tr>
             )}
             {items.map((item) => (
-              <tr key={item.idi_guid ?? item.id_guid ?? item.guid}>
-                <td>{item.nombre}</td>
+              <tr key={item.id_guid}>
+                <td>{item.descripcion}</td>
+                <td>{item.estado || '—'}</td>
                 <td>
                   <button className="btn btn-outline btn-sm" style={{ marginRight: '0.5rem' }} onClick={() => handleEditar(item)}>Editar</button>
-                  <button className="btn btn-outline btn-sm" style={{ color: 'var(--danger, #e55)' }} onClick={() => handleEliminar(item)}>Eliminar</button>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    style={{ color: 'var(--danger, #e55)' }}
+                    onClick={() => setConfirmando(item)}
+                  >
+                    Eliminar
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <ModalConfirmacion
+        abierto={Boolean(confirmando)}
+        titulo="¿Eliminar idioma?"
+        descripcion={
+          confirmando
+            ? `Se eliminará "${confirmando.descripcion}". Esta acción no se puede deshacer.`
+            : ''
+        }
+        textoConfirmar="Eliminar"
+        cargando={eliminando}
+        onConfirmar={ejecutarEliminar}
+        onCancelar={() => !eliminando && setConfirmando(null)}
+      />
     </section>
   )
 }

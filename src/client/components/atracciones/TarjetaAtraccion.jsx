@@ -13,10 +13,11 @@ function Stars({ valor }) {
 
 function TarjetaAtraccion({ atraccion }) {
   const navigate = useNavigate()
+  const guid = atraccion?.at_guid ?? atraccion?.guid ?? atraccion?.id
   const imagen = atraccion?.imagen_principal || FALLBACK_IMAGE
   const precio = atraccion?.precio_desde ?? atraccion?.precio ?? 0
   const calificacion = Number(atraccion?.calificacion ?? 0).toFixed(1)
-  const resenas = atraccion?.total_resenas ?? 0
+  const resenas = atraccion?.total_resenas ?? atraccion?.total_resenias ?? 0
 
   return (
     <article className="atraccion-card fade-in">
@@ -52,7 +53,8 @@ function TarjetaAtraccion({ atraccion }) {
         <button
           type="button"
           className="btn"
-          onClick={() => navigate(`/atracciones/${atraccion?.id}`)}
+          onClick={() => navigate(`/atracciones/${guid}`)}
+          disabled={!guid}
         >
           Ver detalle
         </button>

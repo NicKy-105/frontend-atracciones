@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import * as reseniasApi from '../../api/reseniasApi'
 import * as reservasApi from '../../api/reservasApi'
 import ErrorMessage from '../../components/common/ErrorMessage'
 import Spinner from '../../components/common/Spinner'
+import { emitirToast } from '../../components/common/Toast'
 import { estadoBadgeClass, estadoLabel } from '../../utils/estadoReserva'
 import { useMisReservas } from '../hooks/useMisReservas'
 
@@ -19,13 +20,16 @@ function ModalCancelar({ reserva, onCerrar, onExito }) {
     setCargando(true)
     setError('')
     try {
-      await reservasApi.cancelarReserva(reserva.rev_guid, motivo)
+      await reservasApi.cancelarReserva(reserva.rev_guid, motivo.trim())
+      emitirToast('Reserva cancelada correctamente.', 'success')
       onExito()
     } catch (err) {
       if (err?.response?.status === 409) {
-        setError('Esta reserva ya está cancelada')
+        setError('Esta reserva ya está cancelada o no se puede cancelar.')
+      } else if (err?.response?.status === 403) {
+        setError('No tienes permiso para cancelar esta reserva.')
       } else {
-        setError(err?.response?.data?.message || 'No se pudo cancelar la reserva')
+        setError(err?.response?.data?.message || 'No se pudo cancelar la reserva.')
       }
     } finally {
       setCargando(false)
@@ -201,15 +205,15 @@ function MisReservasPage() {
                 </tr>
               )}
               {reservas.map((reserva) => {
-                const activa = ['A', 'ACTIVA', 'ACTIVE', 'CONFIRMADA', 'C'].includes(
-                  String(reserva.rev_estado ?? '').toUpperCase()
-                )
+                // El backend usa 'A' (activa) como estado cancelable.
+                const estado = String(reserva.rev_estado ?? '').toUpperCase()
+                const activa = estado === 'A'
                 const mostrandoResenia = reseniaPara?.rev_guid === reserva.rev_guid
-                const key = reserva.rev_codigo ?? reserva.rev_guid ?? Math.random()
+                const key = reserva.rev_guid ?? reserva.rev_codigo ?? Math.random()
 
                 return (
-                  <>
-                    <tr key={key}>
+                  <Fragment key={key}>
+                    <tr>
                       <td>
                         <span style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
                           {reserva.rev_codigo || '—'}
@@ -249,13 +253,13 @@ function MisReservasPage() {
                       </td>
                     </tr>
                     {mostrandoResenia && (
-                      <tr key={`resenia-${key}`}>
+                      <tr>
                         <td colSpan={6} style={{ padding: '0.5rem 0.75rem' }}>
                           <FormResenia reserva={reserva} onCerrar={() => setReseniaPara(null)} />
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 )
               })}
             </tbody>

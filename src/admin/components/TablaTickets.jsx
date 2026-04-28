@@ -1,48 +1,95 @@
-function TablaTickets({ items, onEditar, onDesactivar }) {
-  const handleDesactivar = (item) => {
-    if (!window.confirm('¿Estás seguro de que deseas desactivar este ticket?')) return
-    onDesactivar(item.tck_guid || item.guid)
+import { useState } from 'react'
+import ModalConfirmacion from '../../components/common/ModalConfirmacion'
+
+/**
+ * Tabla administrativa de tickets.
+ *
+ * Lee campos del contrato `TicketResponse`:
+ *   tck_guid, at_guid, atraccion_nombre, titulo, tipo_participante,
+ *   precio, capacidad_maxima, cupos_disponibles, estado.
+ */
+function TablaTickets({ items, onEditar, onEliminar }) {
+  const [confirmando, setConfirmando] = useState(null)
+  const [procesando, setProcesando] = useState(false)
+
+  const ejecutarEliminar = async () => {
+    if (!confirmando) return
+    setProcesando(true)
+    try {
+      await onEliminar(confirmando.tck_guid)
+      setConfirmando(null)
+    } finally {
+      setProcesando(false)
+    }
   }
 
   return (
-    <table className="admin-table">
-      <thead>
-        <tr>
-          <th>Tipo</th>
-          <th>Precio</th>
-          <th>Estado</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {items.length === 0 && (
+    <>
+      <table className="admin-table">
+        <thead>
           <tr>
-            <td colSpan={4} style={{ textAlign: 'center', color: '#9ddcff' }}>
-              No hay tickets registrados.
-            </td>
+            <th>Atracción</th>
+            <th>Título</th>
+            <th>Tipo</th>
+            <th>Precio</th>
+            <th>Capacidad</th>
+            <th>Cupos</th>
+            <th>Estado</th>
+            <th>Acciones</th>
           </tr>
-        )}
-        {items.map((item) => (
-          <tr key={item.tck_guid || item.guid}>
-            <td>{item.tipo || item.nombre}</td>
-            <td>${Number(item.precio ?? 0).toFixed(2)}</td>
-            <td>{item.estado || 'ACTIVO'}</td>
-            <td>
-              <button
-                className="btn btn-outline"
-                style={{ marginRight: '0.5rem' }}
-                onClick={() => onEditar(item)}
-              >
-                Editar
-              </button>
-              <button className="btn btn-outline" onClick={() => handleDesactivar(item)}>
-                Desactivar
-              </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {items.length === 0 && (
+            <tr>
+              <td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+                No hay tickets registrados.
+              </td>
+            </tr>
+          )}
+          {items.map((item) => (
+            <tr key={item.tck_guid}>
+              <td>{item.atraccion_nombre || '—'}</td>
+              <td>{item.titulo || '—'}</td>
+              <td>{item.tipo_participante || '—'}</td>
+              <td>${Number(item.precio ?? 0).toFixed(2)}</td>
+              <td>{item.capacidad_maxima ?? '—'}</td>
+              <td>{item.cupos_disponibles ?? '—'}</td>
+              <td>{item.estado || '—'}</td>
+              <td>
+                <button
+                  className="btn btn-outline btn-sm"
+                  style={{ marginRight: '0.5rem' }}
+                  onClick={() => onEditar(item)}
+                >
+                  Editar
+                </button>
+                <button
+                  className="btn btn-outline btn-sm"
+                  style={{ color: 'var(--danger, #e55)' }}
+                  onClick={() => setConfirmando(item)}
+                >
+                  Eliminar
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <ModalConfirmacion
+        abierto={Boolean(confirmando)}
+        titulo="¿Eliminar ticket?"
+        descripcion={
+          confirmando
+            ? `Se eliminará el ticket "${confirmando.titulo}". Esta acción no se puede deshacer.`
+            : ''
+        }
+        textoConfirmar="Eliminar"
+        cargando={procesando}
+        onConfirmar={ejecutarEliminar}
+        onCancelar={() => !procesando && setConfirmando(null)}
+      />
+    </>
   )
 }
 

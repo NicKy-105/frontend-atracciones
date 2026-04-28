@@ -3,10 +3,17 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import ErrorMessage from '../../components/common/ErrorMessage'
 import Spinner from '../../components/common/Spinner'
 import { useAuthContext } from '../../context/AuthContext'
+import {
+  esEmailValido,
+  esIdentificacionValida,
+  esTelefonoValido,
+  mensajeIdentificacion,
+} from '../../utils/validaciones'
 import { useAtracciones } from '../hooks/useAtracciones'
 import { useReserva } from '../hooks/useReserva'
 
-const TIPOS_IDENTIFICACION = ['Cédula', 'Pasaporte', 'RUC', 'Otro']
+// Coinciden con `tipo_identificacion` del backend (≤ 20 chars).
+const TIPOS_IDENTIFICACION = ['CEDULA', 'PASAPORTE', 'RUC', 'OTRO']
 
 // ─── Confirmación ────────────────────────────────────────────────────────────
 function ConfirmacionReserva({ reserva }) {
@@ -97,23 +104,31 @@ function FormularioInvitado({ onConfirmar, onCancelar }) {
   const validar = () => {
     const e = {}
     if (!form.tipo_identificacion) e.tipo_identificacion = 'Selecciona el tipo de identificación'
-    if (!form.numero_identificacion.trim()) e.numero_identificacion = 'El número de identificación es obligatorio'
+    if (!esIdentificacionValida(form.tipo_identificacion, form.numero_identificacion)) {
+      e.numero_identificacion = mensajeIdentificacion(form.tipo_identificacion)
+    }
     if (!form.correo.trim()) e.correo = 'El correo electrónico es obligatorio'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo)) e.correo = 'Debes ingresar un correo electrónico válido'
+    else if (!esEmailValido(form.correo)) e.correo = 'Debes ingresar un correo electrónico válido'
+    if (form.telefono && !esTelefonoValido(form.telefono)) {
+      e.telefono = 'Teléfono inválido (solo dígitos, +, espacios y guiones).'
+    }
     return e
   }
 
   const handleConfirmar = () => {
     const e = validar()
     if (Object.keys(e).length) { setErrores(e); return }
-    onConfirmar({
+    // Solo enviar campos opcionales si tienen valor; el backend admite null
+    // pero los `string?` se convierten mejor enviando undefined cuando no hay dato.
+    const datos = {
       tipo_identificacion: form.tipo_identificacion,
       numero_identificacion: form.numero_identificacion.trim(),
-      nombres: form.nombres.trim() || null,
-      apellidos: form.apellidos.trim() || null,
       correo: form.correo.trim(),
-      telefono: form.telefono.trim() || null,
-    })
+    }
+    if (form.nombres.trim()) datos.nombres = form.nombres.trim()
+    if (form.apellidos.trim()) datos.apellidos = form.apellidos.trim()
+    if (form.telefono.trim()) datos.telefono = form.telefono.trim()
+    onConfirmar(datos)
   }
 
   return (
@@ -193,7 +208,9 @@ function FormularioInvitado({ onConfirmar, onCancelar }) {
             value={form.telefono}
             onChange={set('telefono')}
             placeholder="ej. 0991234567"
+            className={errores.telefono ? 'input-error' : ''}
           />
+          {errores.telefono && <span className="field-error">⚠ {errores.telefono}</span>}
         </div>
       </div>
 

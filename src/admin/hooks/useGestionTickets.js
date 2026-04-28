@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { adminApi } from '../../api/adminApi'
+import { emitirToast } from '../../components/common/Toast'
 
 export function useGestionTickets() {
   const [items, setItems] = useState([])
@@ -11,28 +12,40 @@ export function useGestionTickets() {
     setError('')
     try {
       const data = await adminApi.listarTicketsAdmin()
-      setItems(data)
+      setItems(Array.isArray(data) ? data : [])
     } catch (err) {
-      setError(err?.response?.data?.message || 'No se pudo cargar tickets')
+      setError(err?.response?.data?.message || 'No se pudieron cargar los tickets.')
     } finally {
       setCargando(false)
     }
   }
 
-  useEffect(() => {
-    cargar()
-  }, [])
+  useEffect(() => { cargar() }, [])
 
   const guardar = async (payload, guid) => {
-    if (guid) await adminApi.updateTicket(guid, payload)
-    else await adminApi.createTicket(payload)
+    if (guid) {
+      await adminApi.updateTicket(guid, payload)
+      emitirToast('Cambios guardados correctamente.', 'success')
+    } else {
+      await adminApi.createTicket(payload)
+      emitirToast('Registro creado correctamente.', 'success')
+    }
     await cargar()
   }
 
-  const desactivar = async (guid) => {
-    await adminApi.updateTicket(guid, { estado: 'INACTIVO' })
-    await cargar()
+  const eliminar = async (guid) => {
+    try {
+      await adminApi.eliminarTicket(guid)
+      emitirToast('Registro eliminado correctamente.', 'success')
+      await cargar()
+    } catch (err) {
+      emitirToast(
+        err?.response?.data?.message || 'No se pudo eliminar el ticket.',
+        'error',
+      )
+      throw err
+    }
   }
 
-  return { items, cargando, error, guardar, desactivar, recargar: cargar }
+  return { items, cargando, error, guardar, eliminar, recargar: cargar }
 }

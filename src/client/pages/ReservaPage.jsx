@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { obtenerHorariosDisponibles, obtenerTicketsAtraccion } from '../../api/atraccionesApi'
 import ErrorMessage from '../../components/common/ErrorMessage'
 import Spinner from '../../components/common/Spinner'
 import { useAuthContext } from '../../context/AuthContext'
@@ -238,6 +239,8 @@ function ReservaPage() {
   const [horGuid, setHorGuid] = useState('')
   const [cantidades, setCantidades] = useState({})
   const [intentoEnvio, setIntentoEnvio] = useState(false)
+  const [tickets, setTickets] = useState([])
+  const [horarios, setHorarios] = useState([])
 
   const { detalle, cargarDetalle, cargando, error } = useAtracciones({})
   const { crearReserva, reservaCreada, error: errorReserva, cargando: creando } = useReserva()
@@ -248,6 +251,16 @@ function ReservaPage() {
       .catch(() => setPaso(estaAutenticado ? 'formulario' : 'eleccion'))
   }, [guid]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (!guid) return
+    obtenerTicketsAtraccion(guid)
+      .then((data) => setTickets(Array.isArray(data) ? data : []))
+      .catch(() => setTickets([]))
+    obtenerHorariosDisponibles(guid)
+      .then((data) => setHorarios(Array.isArray(data) ? data : []))
+      .catch(() => setHorarios([]))
+  }, [guid])
+
   const lineas = useMemo(
     () =>
       Object.entries(cantidades)
@@ -257,12 +270,11 @@ function ReservaPage() {
   )
 
   const subtotal = useMemo(() => {
-    if (!detalle?.tickets) return 0
-    return detalle.tickets.reduce((acc, ticket) => {
+    return tickets.reduce((acc, ticket) => {
       const cantidad = Number(cantidades[ticket.tck_guid] || 0)
       return acc + cantidad * Number(ticket.precio || 0)
     }, 0)
-  }, [cantidades, detalle?.tickets])
+  }, [cantidades, tickets])
 
   const iva = subtotal * 0.15
   const total = subtotal + iva
@@ -292,7 +304,7 @@ function ReservaPage() {
   if (cargando && paso === 'cargando') return <Spinner message="Cargando atracción..." />
   if (reservaCreada) return <ConfirmacionReserva reserva={reservaCreada} />
 
-  const sinHorarios = !cargando && detalle && (detalle.horarios_proximos || []).length === 0
+  const sinHorarios = !cargando && detalle && horarios.length === 0
 
   return (
     <section className="page-section">
@@ -339,7 +351,7 @@ function ReservaPage() {
             </div>
           )}
 
-          {!sinHorarios && detalle && (
+          {!sinHorarios && (
             <form className="reserva-form" onSubmit={handleSubmit} noValidate>
 
               <div className="form-group">
@@ -351,10 +363,10 @@ function ReservaPage() {
                   className={intentoEnvio && sinHorario ? 'input-error' : ''}
                 >
                   <option value="">— Elige una fecha y hora —</option>
-                  {(detalle.horarios_proximos || []).map((horario, index) => (
+                  {horarios.map((horario, index) => (
                     <option key={horario.hor_guid || index} value={horario.hor_guid}>
                       {horario.fecha} {horario.hora_inicio}
-                      {horario.cupos != null ? ` — ${horario.cupos} cupos disponibles` : ''}
+                      {horario.cupos_disponibles != null ? ` — ${horario.cupos_disponibles} cupos disponibles` : ''}
                     </option>
                   ))}
                 </select>
@@ -366,10 +378,10 @@ function ReservaPage() {
               <div className="form-group">
                 <label>Cantidad de tickets *</label>
                 <div className="tickets-box">
-                  {(detalle.tickets || []).map((ticket) => (
+                  {tickets.map((ticket) => (
                     <div className="ticket-row" key={ticket.tck_guid}>
                       <div className="ticket-row-info">
-                        <strong>{ticket.tipo}</strong>
+                        <strong>{ticket.titulo}</strong>
                         <span>${Number(ticket.precio).toFixed(2)} por persona</span>
                       </div>
                       <div className="ticket-qty">

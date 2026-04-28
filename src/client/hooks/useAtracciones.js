@@ -23,19 +23,18 @@ export function useAtracciones(filtrosActivos = {}) {
     setError('')
     try {
       const params = {
-        ciudad: filtrosActivos.ciudad || undefined,
-        textoBusqueda: filtrosActivos.textoBusqueda || undefined,
-        tipo: filtrosActivos.tipo || undefined,
-        subtipo: filtrosActivos.subtipo || undefined,
-        idioma: filtrosActivos.idioma || undefined,
-        calificacion_min: filtrosActivos.calificacion_min || undefined,
-        disponible:
+        Ciudad:          filtrosActivos.ciudad           || undefined,
+        Tipo:            filtrosActivos.tipo             || undefined,
+        Subtipo:         filtrosActivos.subtipo          || undefined,
+        Idioma:          filtrosActivos.idioma           || undefined,
+        CalificacionMin: filtrosActivos.calificacion_min || undefined,
+        Disponible:
           typeof filtrosActivos.disponible === 'boolean'
             ? filtrosActivos.disponible
             : undefined,
-        ordenar_por: filtrosActivos.ordenar_por || undefined,
-        page: filtrosActivos.page || 1,
-        limit: filtrosActivos.limit || 8,
+        OrdenarPor:      filtrosActivos.ordenar_por      || undefined,
+        Page:            filtrosActivos.page             || 1,
+        Limit:           filtrosActivos.limit            || 8,
       }
       const data = await listarAtracciones(params)
       setAtracciones(data.data || [])

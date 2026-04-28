@@ -72,3 +72,13 @@ export const obtenerAtraccion = async (guid) => {
   const response = await apiClient.get(`/atracciones/${guid}`)
   return response.data
 }
+
+export const obtenerTicketsAtraccion = async (guid) => {
+  const response = await apiClient.get(`/atracciones/${guid}/tickets`)
+  return response.data.data
+}
+
+export const obtenerHorariosDisponibles = async (guid) => {
+  const response = await apiClient.get(`/atracciones/${guid}/horarios-disponibles`)
+  return response.data.data
+}

@@ -7,8 +7,11 @@ import { useAuthContext } from '../../context/AuthContext'
 import {
   esEmailValido,
   esIdentificacionValida,
+  esNombreValido,
   esTelefonoValido,
   mensajeIdentificacion,
+  mensajeTelefono,
+  mensajeNombre,
 } from '../../utils/validaciones'
 
 /**
@@ -48,13 +51,13 @@ function RegistroPage() {
   const validar = () => {
     const e = {}
     if (!esEmailValido(form.correo)) e.correo = 'Ingresa un correo electrónico válido'
-    if (!form.nombres.trim()) e.nombres = 'Los nombres son obligatorios'
-    if (!form.apellidos.trim()) e.apellidos = 'Los apellidos son obligatorios'
+    if (!esNombreValido(form.nombres)) e.nombres = mensajeNombre('Los nombres')
+    if (!esNombreValido(form.apellidos)) e.apellidos = mensajeNombre('Los apellidos')
     if (!esIdentificacionValida(form.tipo_identificacion, form.numero_identificacion)) {
       e.numero_identificacion = mensajeIdentificacion(form.tipo_identificacion)
     }
     if (form.telefono && !esTelefonoValido(form.telefono)) {
-      e.telefono = 'Teléfono inválido (solo dígitos, +, espacios y guiones).'
+      e.telefono = mensajeTelefono()
     }
     if (form.password.length < 6) e.password = 'La contraseña debe tener al menos 6 caracteres'
     if (form.password !== form.confirmar_password) {

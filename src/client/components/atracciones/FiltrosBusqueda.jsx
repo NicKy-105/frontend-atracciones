@@ -1,12 +1,11 @@
 /**
  * Extrae array de items de filtros del response del backend.
- * El backend puede devolver distintos nombres de campo según la versión:
- *   destinationFilters | ciudades | destinos | cities
- *   typeFilters        | tipos    | categorias
- *   supportedLanguageFilters | idiomas | languages
+ * El backend (snake_case) devuelve:
+ *   destination_filters | type_filters | supported_language_filters
  */
 function extraerCiudades(f) {
   return (
+    f.destination_filters ??
     f.destinationFilters ??
     f.ciudades ??
     f.destinos ??
@@ -17,6 +16,7 @@ function extraerCiudades(f) {
 
 function extraerTipos(f) {
   return (
+    f.type_filters ??
     f.typeFilters ??
     f.tipos ??
     f.categorias ??
@@ -27,6 +27,7 @@ function extraerTipos(f) {
 
 function extraerIdiomas(f) {
   return (
+    f.supported_language_filters ??
     f.supportedLanguageFilters ??
     f.idiomas ??
     f.languages ??
@@ -141,14 +142,13 @@ function FiltrosBusqueda({ filtrosDisponibles, filtrosActivos, onFiltroChange })
         <select
           id="f-cal"
           name="calificacion_min"
-          value={filtrosActivos.calificacion_min || ''}
+          value={filtrosActivos.calificacion_min ?? ''}
           onChange={set('calificacion_min')}
         >
           <option value="">Cualquiera</option>
-          <option value="3.0">★★★ 3.0+</option>
-          <option value="3.5">★★★½ 3.5+</option>
-          <option value="4.0">★★★★ 4.0+</option>
-          <option value="4.5">★★★★½ 4.5+</option>
+          <option value="3">★★★ 3+</option>
+          <option value="4">★★★★ 4+</option>
+          <option value="5">★★★★★ 5</option>
         </select>
       </div>
 

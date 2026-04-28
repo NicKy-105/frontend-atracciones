@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
-import { adminApi } from '../../api/adminApi'
 import ErrorMessage from '../../components/common/ErrorMessage'
 import Spinner from '../../components/common/Spinner'
-import { emitirToast } from '../../components/common/Toast'
 import FormularioAtraccion from '../components/FormularioAtraccion'
 import TablaAtracciones from '../components/TablaAtracciones'
 import { useGestionAtracciones } from '../hooks/useGestionAtracciones'
@@ -12,7 +10,6 @@ function GestionAtraccionesPage() {
     useGestionAtracciones()
   const [editando, setEditando] = useState(null)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
-  const [cargandoDetalle, setCargandoDetalle] = useState(false)
 
   useEffect(() => {
     cargar(1)
@@ -24,22 +21,17 @@ function GestionAtraccionesPage() {
     setMostrarFormulario(true)
   }
 
-  const abrirEditar = async (item) => {
-    // El listado solo trae campos resumidos; el detalle administrativo
-    // (con guids de catálogos) lo entrega GET /admin/atracciones/{guid}.
-    setCargandoDetalle(true)
-    try {
-      const detalle = await adminApi.obtenerAtraccionAdmin(item.at_guid)
-      setEditando(detalle)
-      setMostrarFormulario(true)
-    } catch (err) {
-      emitirToast(
-        err?.response?.data?.message || 'No se pudo cargar el detalle de la atracción.',
-        'error',
-      )
-    } finally {
-      setCargandoDetalle(false)
-    }
+  const abrirEditar = (item) => {
+    // AtraccionAdminResponse del listado ya trae todos los GUIDs necesarios
+    // para precargar el formulario. No existe GET /admin/atracciones/{guid}.
+    setEditando({
+      ...item,
+      categoria_guids: Array.isArray(item.categoria_guids) ? item.categoria_guids : [],
+      idioma_guids:    Array.isArray(item.idioma_guids)    ? item.idioma_guids    : [],
+      imagen_guids:    Array.isArray(item.imagen_guids)    ? item.imagen_guids    : [],
+      incluye_guids:   Array.isArray(item.incluye_guids)   ? item.incluye_guids   : [],
+    })
+    setMostrarFormulario(true)
   }
 
   const onGuardar = async (payload) => {
@@ -63,7 +55,7 @@ function GestionAtraccionesPage() {
         />
       )}
 
-      {(cargando || cargandoDetalle) && <Spinner message="Cargando..." />}
+      {cargando && <Spinner message="Cargando..." />}
       <ErrorMessage mensaje={error} />
 
       <TablaAtracciones

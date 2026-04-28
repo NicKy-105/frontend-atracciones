@@ -17,7 +17,8 @@ export const adminApi = {
   // ─── Atracciones ──────────────────────────────────────────────────────────
   listarAtraccionesAdmin: async (params = {}) => {
     const response = await apiClient.get('/admin/atracciones', { params })
-    return response.data?.data || []
+    const raw = response.data?.data ?? response.data ?? []
+    return Array.isArray(raw) ? raw : []
   },
   /**
    * Igual que `listarAtraccionesAdmin` pero retorna el envelope completo

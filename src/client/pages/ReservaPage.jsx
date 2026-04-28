@@ -7,8 +7,11 @@ import { useAuthContext } from '../../context/AuthContext'
 import {
   esEmailValido,
   esIdentificacionValida,
+  esNombreValido,
   esTelefonoValido,
   mensajeIdentificacion,
+  mensajeTelefono,
+  mensajeNombre,
 } from '../../utils/validaciones'
 import { useAtracciones } from '../hooks/useAtracciones'
 import { useReserva } from '../hooks/useReserva'
@@ -110,8 +113,14 @@ function FormularioInvitado({ onConfirmar, onCancelar }) {
     }
     if (!form.correo.trim()) e.correo = 'El correo electrónico es obligatorio'
     else if (!esEmailValido(form.correo)) e.correo = 'Debes ingresar un correo electrónico válido'
+    if (form.nombres.trim() && !esNombreValido(form.nombres)) {
+      e.nombres = mensajeNombre('Los nombres')
+    }
+    if (form.apellidos.trim() && !esNombreValido(form.apellidos)) {
+      e.apellidos = mensajeNombre('Los apellidos')
+    }
     if (form.telefono && !esTelefonoValido(form.telefono)) {
-      e.telefono = 'Teléfono inválido (solo dígitos, +, espacios y guiones).'
+      e.telefono = mensajeTelefono()
     }
     return e
   }

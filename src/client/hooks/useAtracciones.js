@@ -27,7 +27,9 @@ export function useAtracciones(filtrosActivos = {}) {
         Tipo:            filtrosActivos.tipo             || undefined,
         Subtipo:         filtrosActivos.subtipo          || undefined,
         Idioma:          filtrosActivos.idioma           || undefined,
-        CalificacionMin: filtrosActivos.calificacion_min || undefined,
+        CalificacionMin: filtrosActivos.calificacion_min != null && filtrosActivos.calificacion_min !== ''
+          ? Number(filtrosActivos.calificacion_min)
+          : undefined,
         Disponible:
           typeof filtrosActivos.disponible === 'boolean'
             ? filtrosActivos.disponible
@@ -57,17 +59,12 @@ export function useAtracciones(filtrosActivos = {}) {
     cargarAtracciones()
   }, [cargarAtracciones])
 
-  // Carga filtros siempre (no solo cuando hay ciudad).
-  // Cuando cambia ciudad, recarga con ese parámetro para obtener subtipos dependientes.
+  // Carga filtros al montar; el endpoint no requiere parámetros.
   useEffect(() => {
-    obtenerFiltros(filtrosActivos.ciudad || undefined)
-      .then((resp) => {
-        // El backend puede devolver { data: {...} } o el objeto directamente
-        const raw = resp?.data ?? resp ?? {}
-        setFiltrosDisponibles(raw)
-      })
+    obtenerFiltros()
+      .then((raw) => setFiltrosDisponibles(raw ?? {}))
       .catch(() => setFiltrosDisponibles({}))
-  }, [filtrosActivos.ciudad])
+  }, [])
 
   const cargarDetalle = useCallback(async (guid) => {
     setCargando(true)

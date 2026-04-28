@@ -61,11 +61,9 @@ export const listarAtracciones = async (params = {}) => {
   return response.data
 }
 
-export const obtenerFiltros = async (ciudad) => {
-  const response = await apiClient.get('/atracciones/filtros', {
-    params: { ciudad },
-  })
-  return response.data
+export const obtenerFiltros = async () => {
+  const response = await apiClient.get('/atracciones/filtros')
+  return response.data?.data ?? response.data ?? {}
 }
 
 export const obtenerAtraccion = async (guid) => {
